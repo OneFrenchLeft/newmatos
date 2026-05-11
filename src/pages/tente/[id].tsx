@@ -48,14 +48,41 @@ const MISSING_LABELS: Record<string, string> = {
   sacTente: "Sac de tentes",
 }
 
+/** Retourne les items manquants si comments est un JSON checklist, sinon {} */
 function parseMissingItems(comments: string | null | undefined): Record<string, boolean> {
   if (!comments) return {}
   try {
     const parsed = JSON.parse(comments)
-    if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) return parsed as Record<string, boolean>
+    if (
+      typeof parsed === "object" &&
+      parsed !== null &&
+      !Array.isArray(parsed) &&
+      "zip" in parsed
+    ) {
+      return parsed as Record<string, boolean>
+    }
   } catch { /* not JSON */ }
   return {}
 }
+
+/** Retourne le commentaire texte libre si ce n'est pas un JSON checklist, sinon null */
+function getRealComment(comments: string | null | undefined): string | null {
+  if (!comments) return null
+  try {
+    const parsed = JSON.parse(comments)
+    if (
+      typeof parsed === "object" &&
+      parsed !== null &&
+      !Array.isArray(parsed) &&
+      "zip" in parsed
+    ) {
+      return null // c'est la checklist JSON, pas un vrai commentaire
+    }
+  } catch { /* not JSON → c'est un vrai commentaire */ }
+  return comments
+}
+
+const RED_STATES = new Set(["EN_REPARATION", "INUTILISABLE", "MAUVAIS"])
 
 export default function PublicTentPage() {
   const router = useRouter()
@@ -63,15 +90,19 @@ export default function PublicTentPage() {
 
   const { data: tent, isLoading, refetch } = trpc.tents.getPublic.useQuery(tentId, {
     enabled: !!tentId,
+    // Rafraîchit toutes les 10s pour rester synchronisé avec la checklist
+    refetchInterval: 10_000,
+    refetchIntervalInBackground: false,
   })
 
   const { data: loans, refetch: refetchLoans } = trpc.loans.getPublicHistory.useQuery(tentId, {
     enabled: !!tentId,
   })
 
-  const reportRepairMutation = trpc.tents.update.useMutation({
+  const reportRepairMutation = trpc.tents.reportProblem.useMutation({
     onSuccess: () => {
       toast.success("Tente signalée en réparation !")
+      setShowRepairConfirm(false)
       refetch()
     },
     onError: () => toast.error("Erreur lors du signalement"),
@@ -116,12 +147,12 @@ export default function PublicTentPage() {
     )
   }
 
-  const isProblematic = !tent.complete || tent.state === "EN_REPARATION"
+  const isProblematic = !tent.complete || RED_STATES.has(tent.state)
   const activeLoan = loans?.find((l) => !l.returnedAt)
   const loanHistory = loans ?? []
   const missingItems = parseMissingItems(tent.comments)
   const missingKeys = Object.entries(missingItems).filter(([, v]) => v).map(([k]) => k)
-  const hasRealComment = tent.comments && (() => { try { JSON.parse(tent.comments!); return false } catch { return true } })()
+  const realComment = getRealComment(tent.comments)
 
   return (
     <div className={`min-h-screen px-4 py-8 ${isProblematic ? "bg-red-50" : "bg-slate-50"}`}>
@@ -144,24 +175,26 @@ export default function PublicTentPage() {
               <h1 className={`text-2xl font-bold ${isProblematic ? "text-red-700" : "text-slate-800"}`}>
                 Tente {tent.identifyingLabel ?? tent.identifyingNum}
               </h1>
-              <span className={`mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-semibold text-white ${stateColors[tent.state] ?? "bg-slate-400"}`}>
-                {stateLabels[tent.state] ?? tent.state}
-              </span>
-              {!tent.complete && (
-                <span className="ml-2 mt-1 inline-block rounded-full bg-red-500 px-2 py-0.5 text-xs font-semibold text-white">
-                  Incomplète
+              <div className="mt-1 flex flex-wrap gap-1">
+                <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-semibold text-white ${stateColors[tent.state] ?? "bg-slate-400"}`}>
+                  {stateLabels[tent.state] ?? tent.state}
                 </span>
-              )}
+                {!tent.complete && (
+                  <span className="inline-block rounded-full bg-red-500 px-2 py-0.5 text-xs font-semibold text-white">
+                    Incomplète
+                  </span>
+                )}
+              </div>
             </div>
           </div>
 
-          {/* Missing items badges */}
+          {/* Éléments manquants — badges visibles */}
           {missingKeys.length > 0 && (
             <div className="mt-4">
               <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-red-500">Éléments manquants</p>
               <div className="flex flex-wrap gap-2">
                 {missingKeys.map((k) => (
-                  <span key={k} className="rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-700 border border-red-200">
+                  <span key={k} className="rounded-full border border-red-200 bg-white px-3 py-1 text-xs font-semibold text-red-700">
                     ⚠️ {MISSING_LABELS[k] ?? k}
                   </span>
                 ))}
@@ -170,8 +203,22 @@ export default function PublicTentPage() {
           )}
         </div>
 
+        {/* Banière EN_REPARATION */}
+        {tent.state === "EN_REPARATION" && (
+          <div className="rounded-2xl border border-red-300 bg-red-50 p-4 shadow-sm">
+            <p className="text-sm font-semibold text-red-700">🔧 Cette tente est actuellement en réparation.</p>
+          </div>
+        )}
+
+        {/* Banière INUTILISABLE */}
+        {tent.state === "INUTILISABLE" && (
+          <div className="rounded-2xl border border-red-400 bg-red-100 p-4 shadow-sm">
+            <p className="text-sm font-semibold text-red-800">🚫 Cette tente est inutilisable.</p>
+          </div>
+        )}
+
         {/* Signaler un problème */}
-        {tent.state !== "EN_REPARATION" && (
+        {tent.state !== "EN_REPARATION" && tent.state !== "INUTILISABLE" && (
           <div className="rounded-2xl bg-white p-4 shadow-sm">
             {!showRepairConfirm ? (
               <button
@@ -192,7 +239,7 @@ export default function PublicTentPage() {
                   </button>
                   <button
                     disabled={reportRepairMutation.isLoading}
-                    onClick={() => reportRepairMutation.mutate({ id: tent.id, values: { state: "EN_REPARATION" } })}
+                    onClick={() => reportRepairMutation.mutate({ id: tent.id })}
                     className="flex-1 rounded-xl bg-red-600 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-40"
                   >
                     {reportRepairMutation.isLoading ? "Envoi..." : "Confirmer"}
@@ -203,19 +250,13 @@ export default function PublicTentPage() {
           </div>
         )}
 
-        {tent.state === "EN_REPARATION" && (
-          <div className="rounded-2xl border border-red-300 bg-red-50 p-4 shadow-sm">
-            <p className="text-sm font-semibold text-red-700">🔧 Cette tente est actuellement en réparation.</p>
-          </div>
-        )}
-
         {/* Details */}
         <div className="rounded-2xl bg-white p-6 shadow-sm">
           <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-slate-400">Caractéristiques</h2>
           <dl className="space-y-3 text-sm">
             <div className="flex justify-between">
               <dt className="font-medium text-slate-600">Type</dt>
-              <dd className="font-semibold text-slate-900">{tent.type.toUpperCase()}</dd>
+              <dd className="font-semibold text-slate-900">{tent.type}</dd>
             </div>
             <div className="flex justify-between">
               <dt className="font-medium text-slate-600">Taille</dt>
@@ -223,7 +264,7 @@ export default function PublicTentPage() {
             </div>
             <div className="flex justify-between">
               <dt className="font-medium text-slate-600">Sardines</dt>
-              <dd className="font-semibold text-slate-900">{tent.pegs} sardine{tent.pegs !== 1 ? "s" : ""}</dd>
+              <dd className="font-semibold text-slate-900">{tent.pegs ?? 0} sardine{(tent.pegs ?? 0) !== 1 ? "s" : ""}</dd>
             </div>
             <div className="flex justify-between">
               <dt className="font-medium text-slate-600">Tapis de sol</dt>
@@ -233,10 +274,10 @@ export default function PublicTentPage() {
               <dt className="font-medium text-slate-600">Complète</dt>
               <dd className={`font-semibold ${tent.complete ? "text-slate-900" : "text-red-600"}`}>{tent.complete ? "Oui" : "Non"}</dd>
             </div>
-            {hasRealComment && (
-              <div className="flex justify-between">
+            {realComment && (
+              <div className="flex justify-between gap-4">
                 <dt className="font-medium text-slate-600">Commentaire</dt>
-                <dd className="max-w-[55%] text-right font-semibold text-slate-900">{tent.comments}</dd>
+                <dd className="max-w-[55%] text-right font-semibold text-slate-900">{realComment}</dd>
               </div>
             )}
           </dl>
