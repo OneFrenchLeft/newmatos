@@ -2,14 +2,41 @@ import Button from "@/components/ui/Button"
 import ButtonLink from "@/components/ui/ButtonLink"
 import Icon from "@/components/ui/Icon"
 import Panel from "@/components/ui/Panel"
-import { downloadExcel } from "@/utils/downloadFns"
+import { downloadExcel, parseImportedExcel } from "@/utils/downloadFns"
 import { UIProps } from "@/utils/typedProps"
 import { Tent } from "@prisma/client"
-import { FC } from "react"
+import { FC, useRef } from "react"
+import { toast } from "react-hot-toast"
 import { useGroup } from "../../hooks/useGroup"
+import { trpc } from "@/utils/trpc"
 
 const ActionsPanel: FC<UIProps<{ tents: Tent[] }>> = ({ tents }) => {
   const { movement } = useGroup()
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const trpcCtx = trpc.useContext()
+  const importMutation = trpc.group.importTents.useMutation({
+    onSuccess(data) {
+      trpcCtx.tents.getAll.invalidate()
+      toast.success(`${data.imported} tente(s) importée(s) avec succès`)
+    },
+    onError(err) {
+      toast.error(err.message || "Erreur lors de l'import")
+    },
+  })
+
+  const handleImportClick = () => fileInputRef.current?.click()
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    e.target.value = ""
+    try {
+      const parsed = await parseImportedExcel(file)
+      await importMutation.mutateAsync(parsed)
+    } catch (err: any) {
+      toast.error(err?.message || "Format de fichier invalide")
+    }
+  }
 
   return (
     <Panel id="actions">
@@ -56,10 +83,78 @@ const ActionsPanel: FC<UIProps<{ tents: Tent[] }>> = ({ tents }) => {
             >
               Exporter en .xlsx
             </Button>
+            <Button
+              type="button"
+              icon="RiFileExcel2Fill"
+              size="sm"
+              variant="white"
+              onClick={handleImportClick}
+              disabled={importMutation.isLoading}
+            >
+              {importMutation.isLoading ? "Import en cours..." : "Importer un .xlsx"}
+            </Button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".xlsx,.xls"
+              className="hidden"
+              onChange={handleFileChange}
+            />
           </div>
+        </div>
+        {/* Supprimer le groupe */}
+        <div className="mx-auto mt-10 w-full max-w-[350px] space-y-3 border-t border-red-200 pt-6">
+          <h3 className="ml-2 flex items-center space-x-2 self-start text-xl font-semibold text-red-600">
+            <Icon name="MdDeleteForever" />
+            <span>Danger</span>
+          </h3>
+          <DeleteGroupButton />
         </div>
       </div>
     </Panel>
+  )
+}
+
+const DeleteGroupButton: FC = () => {
+  const trpcCtx = trpc.useContext()
+  const deleteMutation = trpc.group.delete.useMutation({
+    onSuccess() {
+      window.location.href = "/"
+    },
+    onError(err) {
+      toast.error(err.message || "Erreur lors de la suppression")
+    },
+  })
+
+  const handleDelete = () => {
+    const answer = window.prompt(
+      'Pour confirmer la suppression définitive de votre groupe et de toutes ses tentes, tapez exactement : SUPPRIMER',
+    )
+    if (answer !== "SUPPRIMER") {
+      if (answer !== null) toast.error("Confirmation incorrecte. Suppression annulée.")
+      return
+    }
+    toast.promise(
+      deleteMutation.mutateAsync({ confirmation: "SUPPRIMER" }),
+      {
+        loading: "Suppression en cours...",
+        success: "Groupe supprimé",
+        error: "Erreur lors de la suppression",
+      },
+    )
+  }
+
+  return (
+    <Button
+      type="button"
+      size="sm"
+      variant="white"
+      onClick={handleDelete}
+      disabled={deleteMutation.isLoading}
+      className="w-full border border-red-300 text-red-600 hover:bg-red-50"
+    >
+      {deleteMutation.isLoading ? "Suppression..." : "Supprimer le groupe"}
+    </Button>
   )
 }
 

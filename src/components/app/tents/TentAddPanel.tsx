@@ -22,6 +22,26 @@ const stateLabels: Record<State, string> = {
   NEUF: "Neuf",
 }
 
+const TYPE_OPTIONS: [string, string][] = [
+  ["Canadienne", "Canadienne"],
+  ["Marabout", "Marabout"],
+  ["Quechua", "Quechua"],
+  ["Tente inversée", "Tente inversée"],
+  ["Tipi", "Tipi"],
+]
+
+const SIZE_OPTIONS: [string, string][] = [
+  ["0", "N'accueille pas de personne"],
+  ["1", "1 place"],
+  ["2", "2 places"],
+  ["3", "3 places"],
+  ["4", "4 places"],
+  ["5", "5 places"],
+  ["6", "6 places"],
+  ["8", "8 places"],
+  ["10", "10 places"],
+]
+
 const TentAddPanel: FC<UIProps<{ tents: Tents }>> = ({ tents }) => {
   const { setModal } = useModalContext()
   const trpcCtx = trpc.useContext()
@@ -44,10 +64,10 @@ const TentAddPanel: FC<UIProps<{ tents: Tents }>> = ({ tents }) => {
 
   const [label, setLabel] = useState("")
   const [state, setState] = useState<State>("NEUF")
-  const [size, setSize] = useState(6)
+  const [size, setSize] = useState("6")
   const [complete, setComplete] = useState(true)
   const [integrated, setIntegrated] = useState(false)
-  const [type, setType] = useState("CANADIENNE")
+  const [type, setType] = useState("Canadienne")
   const [pegs, setPegs] = useState<number | "">("")
   const [comments, setComments] = useState("")
 
@@ -64,7 +84,7 @@ const TentAddPanel: FC<UIProps<{ tents: Tents }>> = ({ tents }) => {
     const createPromise = createMutation.mutateAsync({
       identifyingLabel: trimmed,
       state,
-      size,
+      size: parseInt(size),
       complete,
       integrated,
       type,
@@ -136,12 +156,12 @@ const TentAddPanel: FC<UIProps<{ tents: Tents }>> = ({ tents }) => {
         </div>
 
         <div className="space-y-2">
-          <TentInput label="Taille" value={size.toString()} setValue={(v) => setSize(parseInt(v as string))} options={[["0","N'accueille pas de personne"],["1","1 place"],["2","2 places"],["3","3 places"],["4","4 places"],["5","5 places"],["6","6 places"],["8","8 places"]]} />
+          <TentInput label="Taille" value={size} setValue={(v) => setSize(v as string)} options={SIZE_OPTIONS} />
           <TentInput label="ÉTAT" value={state} setValue={(v) => setState(v as State)} options={Object.entries(stateLabels).map(([k, v]) => [k, v] as [string, string])} />
           <TentInput label="Complète ?" value={complete ? "OUI" : "NON"} setValue={(v) => setComplete(v === "OUI")} options={[["OUI","OUI"],["NON","NON"]]} />
-          <TentInput label="TYPE" value={type} setValue={setType} options={[["CANADIENNE","CANADIENNE"],["QUECHUA","QUECHUA"],["MARABOUT","MARABOUT"]]} />
+          <TentInput label="TYPE" value={type} setValue={(v) => setType(v as string)} options={TYPE_OPTIONS} />
           <TentInput label="Tapis de sol" value={integrated ? "INTÉGRÉ" : "NORMAL"} setValue={(v) => setIntegrated(v === "INTÉGRÉ")} options={[["INTÉGRÉ","INTÉGRÉ"],["NORMAL","NORMAL"]]} />
-          {/* Sardines — même CSS que TentInput */}
+          {/* Sardines */}
           <div className="flex items-center rounded-md text-center text-sm font-semibold bg-gray-200">
             <span className="w-[50%] truncate rounded-md rounded-r-none bg-slate-900 px-1 py-2 text-slate-50">
               Sardines

@@ -21,7 +21,7 @@ const SignUpForm = () => {
       toast
         .promise(registerMutation.mutateAsync(values), {
           loading: "Création du groupe ...",
-          error: "Veuillez réessayer plus tard",
+          error: (err) => err?.message || "Veuillez réessayer plus tard",
           success: "Vous allez être redirigé",
         })
         .then((id) =>
