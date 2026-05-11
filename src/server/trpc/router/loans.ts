@@ -14,8 +14,8 @@ export const loansRouter = t.router({
       })
     }),
 
-  // Create a new loan (borrow a tent)
-  create: authedProcedure
+  // Create a new loan (borrow a tent) — public, accessible depuis la page tente
+  create: t.procedure
     .input(
       z.object({
         tentId: z.string(),
@@ -41,8 +41,8 @@ export const loansRouter = t.router({
       })
     }),
 
-  // Return a tent (close the active loan)
-  return: authedProcedure
+  // Return a tent (close the active loan) — public, accessible depuis la page tente
+  return: t.procedure
     .input(z.string())
     .mutation(async ({ ctx, input: tentId }) => {
       const { prisma } = ctx
