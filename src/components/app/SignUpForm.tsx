@@ -23,9 +23,9 @@ const SignUpForm = () => {
     async (values: IRegister) => {
       toast
         .promise(registerMutation.mutateAsync(values), {
-          loading: "Création du groupe ...",
-          error: "Veuillez réessayer plus tard",
-          success: "Vous allez être redirigé",
+          loading: "Cr\u00e9ation du groupe ...",
+          error: "Veuillez r\u00e9essayer plus tard",
+          success: "Vous allez \u00eatre redirig\u00e9",
         })
         .then((id) =>
           signIn("credentials", {
@@ -44,7 +44,6 @@ const SignUpForm = () => {
         <link rel="icon" href={logo} />
         <link rel="shortcut icon" type="image/x-icon" href={logo} />
         <link rel="apple-touch-icon" sizes="180x180" href={logo} />
-
         <meta charSet="utf-8" />
         <meta
           name="viewport"
@@ -81,7 +80,7 @@ const SignUpForm = () => {
                 Mouvement scout
               </label>
               <div className="flex w-full items-center">
-                <div className="flex w-full items-center gap-4 rounded-lg border border-gray-200 p-3 focus-within:border-2  focus-within:border-blue-500">
+                <div className="flex w-full items-center gap-4 rounded-lg border border-gray-200 p-3 focus-within:border-2 focus-within:border-blue-500">
                   <Icon name="GiJerusalemCross" className="w-6" />
                   <Field
                     id="movement"
@@ -113,8 +112,7 @@ const SignUpForm = () => {
                         )}
                       />
                     </Disclosure.Button>
-
-                    <Disclosure.Panel className="px-4 pt-4 pb-2 text-sm  text-slate-900">
+                    <Disclosure.Panel className="px-4 pt-4 pb-2 text-sm text-slate-900">
                       Venez nous en parler sur{" "}
                       <a
                         href="https://discord.com/invite/qjvvM6Wya6"
@@ -125,16 +123,15 @@ const SignUpForm = () => {
                         Discord
                       </a>{" "}
                       ou envoyez-nous un{" "}
-                      <Link href="/contact">
-                        <a className="font-medium text-blue-500">Message</a>
+                      <Link href="/contact" className="font-medium text-blue-500">
+                        Message
                       </Link>
                       . Nous essayerons d'ajouter votre mouvement et ses
-                      spécificités.
+                      sp\u00e9cificit\u00e9s.
                     </Disclosure.Panel>
                   </div>
                 )}
               </Disclosure>
-
               <Button
                 size="lg"
                 variant="black"
@@ -145,18 +142,20 @@ const SignUpForm = () => {
                 {isSubmitting ? <LoadingDots /> : "C'est parti !"}
               </Button>
               <p className="text-sm">
-                Votre groupe est déjà inscrit ?{" "}
-                <Link href="/connexion">
-                  <a className="w-fit pl-1 font-medium text-blue-500 focus:bg-blue-300/20 focus:outline-none">
-                    Connectez-vous
-                  </a>
+                Votre groupe est d\u00e9j\u00e0 inscrit ?{" "}
+                <Link
+                  href="/connexion"
+                  className="w-fit pl-1 font-medium text-blue-500 focus:bg-blue-300/20 focus:outline-none"
+                >
+                  Connectez-vous
                 </Link>
               </p>
             </Form>
-            <Link href="/">
-              <a className="mx-auto mt-10 block w-fit text-sm underline">
-                Revenir à l'accueil
-              </a>
+            <Link
+              href="/"
+              className="mx-auto mt-10 block w-fit text-sm underline"
+            >
+              Revenir \u00e0 l'accueil
             </Link>
           </div>
         )}
