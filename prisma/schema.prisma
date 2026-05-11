@@ -28,6 +28,7 @@ model Tent {
   type             String       @default("Canadienne")
   pegs             Int          @default(0)
   comments         String?      @db.Text
+  missingItems     String?      @db.Text
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
   groupId          String

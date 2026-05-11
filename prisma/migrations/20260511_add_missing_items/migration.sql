@@ -1,0 +1,1 @@
+ALTER TABLE `Tent` ADD COLUMN `missingItems` TEXT NULL;

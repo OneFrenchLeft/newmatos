@@ -51,43 +51,22 @@ const CHECKLIST_KEYS = Object.keys(ITEM_LABELS)
 
 type Checklist = Record<string, boolean>
 
-/**
- * Parse le champ comments s'il contient un JSON checklist.
- * Accepte tout objet JSON valide contenant au moins une clé connue de la checklist.
- * Plus robuste que de vérifier uniquement la présence de "zip".
- */
-function parseChecklist(comments: string | null | undefined): Checklist | null {
-  if (!comments) return null
-  try {
-    const parsed = JSON.parse(comments)
-    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) return null
-    // Valide si au moins une clé connue est présente
-    const hasKnownKey = CHECKLIST_KEYS.some((k) => k in parsed)
-    if (!hasKnownKey) return null
-    // On reconstruit proprement en ne gardant que les clés connues
-    const checklist: Checklist = {}
-    for (const k of CHECKLIST_KEYS) {
-      checklist[k] = typeof parsed[k] === "boolean" ? parsed[k] : false
-    }
-    return checklist
-  } catch { /* pas du JSON */ }
-  return null
-}
-
-/** Retourne le commentaire texte uniquement si ce n'est PAS un JSON checklist */
-function getRealComment(comments: string | null | undefined): string | null {
-  if (!comments) return null
-  try {
-    const parsed = JSON.parse(comments)
-    if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
-      const hasKnownKey = CHECKLIST_KEYS.some((k) => k in parsed)
-      if (hasKnownKey) return null
-    }
-  } catch { /* pas du JSON = vrai commentaire */ }
-  return comments
-}
-
 const DEFAULT_CHECKLIST: Checklist = Object.fromEntries(CHECKLIST_KEYS.map((k) => [k, false]))
+
+function parseMissingItems(raw: string | null | undefined): Checklist {
+  if (!raw) return { ...DEFAULT_CHECKLIST }
+  try {
+    const parsed = JSON.parse(raw)
+    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) return { ...DEFAULT_CHECKLIST }
+    const result: Checklist = { ...DEFAULT_CHECKLIST }
+    for (const k of CHECKLIST_KEYS) {
+      if (typeof parsed[k] === "boolean") result[k] = parsed[k]
+    }
+    return result
+  } catch {
+    return { ...DEFAULT_CHECKLIST }
+  }
+}
 
 export default function PublicTentPage() {
   const router = useRouter()
@@ -103,16 +82,14 @@ export default function PublicTentPage() {
     enabled: !!tentId,
   })
 
-  // Checklist locale, initialisée depuis la BDD dès que tent est chargé
-  const [checklist, setChecklist] = useState<Checklist>(DEFAULT_CHECKLIST)
+  const [checklist, setChecklist] = useState<Checklist>({ ...DEFAULT_CHECKLIST })
   const [checklistReady, setChecklistReady] = useState(false)
 
   useEffect(() => {
     if (!tent) return
-    const fromDb = parseChecklist(tent.comments)
-    setChecklist(fromDb ?? DEFAULT_CHECKLIST)
+    setChecklist(parseMissingItems(tent.missingItems))
     setChecklistReady(true)
-  }, [tent?.comments])
+  }, [tent?.missingItems])
 
   const updateChecklistMutation = trpc.tents.updateChecklist.useMutation({
     onSuccess: () => void refetch(),
@@ -169,7 +146,6 @@ export default function PublicTentPage() {
 
   const activeLoan = loans?.find((l) => !l.returnedAt)
   const loanHistory = loans ?? []
-  const realComment = getRealComment(tent.comments)
   const missingCount = Object.values(checklist).filter(Boolean).length
 
   return (
@@ -230,16 +206,16 @@ export default function PublicTentPage() {
               <dt className="font-medium text-slate-600">Complète</dt>
               <dd className="font-semibold text-slate-900">{tent.complete ? "Oui" : "Non"}</dd>
             </div>
-            {realComment && (
+            {tent.comments && (
               <div className="flex justify-between">
                 <dt className="font-medium text-slate-600">Commentaire</dt>
-                <dd className="max-w-[55%] text-right font-semibold text-slate-900">{realComment}</dd>
+                <dd className="max-w-[55%] text-right font-semibold text-slate-900">{tent.comments}</dd>
               </div>
             )}
           </dl>
         </div>
 
-        {/* Ce qui manque — synchronisé avec la BDD */}
+        {/* Ce qui manque */}
         <div className="rounded-2xl bg-white p-6 shadow-sm">
           <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-slate-400">
             Ce qui manque
@@ -268,7 +244,7 @@ export default function PublicTentPage() {
           )}
         </div>
 
-        {/* Active loan */}
+        {/* Emprunt en cours */}
         <div className="rounded-2xl bg-white p-6 shadow-sm">
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-slate-400">
             Emprunt en cours
@@ -293,7 +269,7 @@ export default function PublicTentPage() {
           )}
         </div>
 
-        {/* Loan form */}
+        {/* Enregistrer un emprunt */}
         <div className="rounded-2xl bg-white p-6 shadow-sm">
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-slate-400">
             Enregistrer un emprunt
@@ -355,7 +331,7 @@ export default function PublicTentPage() {
           )}
         </div>
 
-        {/* Loan history */}
+        {/* Historique */}
         {loanHistory.length > 0 && (
           <div className="rounded-2xl bg-white p-6 shadow-sm">
             <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-slate-400">

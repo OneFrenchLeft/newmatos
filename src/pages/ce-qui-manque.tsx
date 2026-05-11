@@ -41,17 +41,11 @@ const ITEM_LABELS: Record<keyof MissingItems, string> = {
   sacTente: "Sac de tentes",
 }
 
-/**
- * Parse robuste : accepte tout objet JSON contenant au moins une clé connue.
- * Les clés manquantes sont complétées à false.
- */
-const getItems = (tent: { comments: string | null }): MissingItems => {
-  if (!tent.comments) return defaultItems()
+const getItems = (tent: { missingItems: string | null }): MissingItems => {
+  if (!tent.missingItems) return defaultItems()
   try {
-    const parsed = JSON.parse(tent.comments)
+    const parsed = JSON.parse(tent.missingItems)
     if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) return defaultItems()
-    const hasKnownKey = ITEM_KEYS.some((k) => k in parsed)
-    if (!hasKnownKey) return defaultItems()
     const result = defaultItems()
     for (const k of ITEM_KEYS) {
       if (typeof parsed[k] === "boolean") result[k] = parsed[k]
@@ -66,7 +60,6 @@ const CeQuiManquePage: NextPageWithLayout = () => {
   const router = useRouter()
   const { data: tents, isLoading, refetch } = trpc.tents.getAll.useQuery()
 
-  // Utilise updateChecklist (mutation publique dédiée) pour ne pas écraser les autres champs
   const updateChecklistMutation = trpc.tents.updateChecklist.useMutation({
     onSettled: () => refetch(),
     onError: () => toast.error("Erreur lors de la sauvegarde"),

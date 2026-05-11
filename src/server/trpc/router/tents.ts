@@ -77,7 +77,6 @@ export const tentsRouter = t.router({
       } catch (error) { handleError(error) }
     }),
 
-  // Mutation publique pour signaler un problème (passe la tente en EN_REPARATION)
   reportProblem: t.procedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
@@ -90,15 +89,19 @@ export const tentsRouter = t.router({
       } catch (error) { handleError(error) }
     }),
 
-  // Mutation publique pour synchroniser la checklist des éléments manquants
+  // Mutation publique — stocke la checklist dans missingItems (champ dédié)
   updateChecklist: t.procedure
     .input(z.object({ id: z.string(), checklist: checklistSchema }))
     .mutation(async ({ ctx, input }) => {
       const { prisma } = ctx
+      const hasAnyMissing = Object.values(input.checklist).some(Boolean)
       try {
         return await prisma.tent.update({
           where: { id: input.id },
-          data: { comments: JSON.stringify(input.checklist) },
+          data: {
+            missingItems: JSON.stringify(input.checklist),
+            complete: !hasAnyMissing,
+          },
         })
       } catch (error) { handleError(error) }
     }),
@@ -111,7 +114,6 @@ export const tentsRouter = t.router({
     } catch (error) { handleError(error) }
   }),
 
-  // Repair tasks
   addRepairTask: authedProcedure
     .input(z.object({ tentId: z.string(), task: repairTaskSchema }))
     .mutation(async ({ ctx, input }) => {
