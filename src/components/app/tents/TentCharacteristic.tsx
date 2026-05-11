@@ -10,7 +10,7 @@ export type recordableKeyOf<T> = {
 const stateLabels: Record<string, string> = {
   INUTILISABLE: "Inutilisable",
   MAUVAIS: "Mauvais",
-  EN_REPARATION: "En réparation",
+  EN_REPARATION: "En r\u00e9paration",
   BON: "Bon",
   NEUF: "Neuf",
 }
@@ -19,8 +19,8 @@ const typeLabels: Record<string, string> = {
   CANADIENNE: "Canadienne",
   MARABOUT: "Marabout",
   QUECHUA: "Quechua",
-  "TENTE INVERSÉE": "Tente inversée",
-  "TENTE INVERSEE": "Tente inversée",
+  "TENTE INVERS\u00c9E": "Tente invers\u00e9e",
+  "TENTE INVERSEE": "Tente invers\u00e9e",
   TIPI: "Tipi",
 }
 
@@ -35,13 +35,12 @@ const TentCharacteristic = <T extends recordableKeyOf<Tent>>({
   label,
   value,
   variants,
-  type,
+  type: fieldType,
 }: TentCharacteristicProps<T>) => {
-  // Resolve human-readable display value
   let displayValue: string = String(value)
-  if (type === "state" && typeof value === "string") {
+  if (fieldType === "state" && typeof value === "string") {
     displayValue = stateLabels[value] ?? value
-  } else if (type === "type" && typeof value === "string") {
+  } else if (fieldType === "type" && typeof value === "string") {
     displayValue = typeLabels[value.toUpperCase()] ?? value
   }
 
