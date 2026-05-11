@@ -37,13 +37,13 @@ const MobileNavbar = () => {
             <HeaderLink label="Mon groupe" href="/groupe" icon="FaChurch" />
             <HeaderLink label="Mes tentes" href="/tentes" icon="FaCampground" />
             <HeaderLink label="Ce qui manque" href="/ce-qui-manque" icon="MdOutlineErrorOutline" />
-            <HeaderLink label="R\u00e9parations" href="/reparation" icon="FaWrench" />
+            <HeaderLink label="Réparations" href="/reparation" icon="FaWrench" />
             <button
               className="flex items-center gap-2 text-red-600 transition-colors"
               onClick={() => signOut({ callbackUrl: "/connexion" })}
             >
               <Icon name="HiLogout" className="w-5" />
-              D\u00e9connexion
+              Déconnexion
             </button>
           </nav>
         </div>

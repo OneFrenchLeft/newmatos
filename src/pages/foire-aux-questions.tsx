@@ -10,10 +10,10 @@ type FAQItem = {
 
 const faqItems: FAQItem[] = [
   {
-    question: "Qui est \u00e0 l'origine de MonMatos ?",
+    question: "Qui est à l'origine de MonMatos ?",
     answer: (
       <span>
-        MonMatos a \u00e9t\u00e9 cr\u00e9\u00e9 par{" "}
+        MonMatos a été créé par{" "}
         <a
           href="https://github.com/pnwatin/monmatos"
           target="_blank"
@@ -22,7 +22,7 @@ const faqItems: FAQItem[] = [
         >
           pnwatin
         </a>
-        . C'est lui qui a eu l'initiative du projet et pos\u00e9 les bases de l'application.
+        . C&apos;est lui qui a eu l&apos;initiative du projet et posé les bases de l&apos;application.
       </span>
     ),
   },
@@ -30,7 +30,7 @@ const faqItems: FAQItem[] = [
     question: "Qui a repris l'initiative du projet ?",
     answer: (
       <span>
-        Le projet a \u00e9t\u00e9 repris et maintenu par{" "}
+        Le projet a été repris et maintenu par{" "}
         <a
           href="https://github.com/OneFrenchLeft/newmatos"
           target="_blank"
@@ -39,36 +39,36 @@ const faqItems: FAQItem[] = [
         >
           OneFrenchLeft
         </a>
-        , qui continue d'am\u00e9liorer et faire \u00e9voluer l'application.
+        , qui continue d&apos;améliorer et faire évoluer l&apos;application.
       </span>
     ),
   },
   {
-    question: "L'IA a-t-elle \u00e9t\u00e9 utilis\u00e9e dans ce projet ?",
+    question: "L'IA a-t-elle été utilisée dans ce projet ?",
     answer:
-      "Oui, de l'IA a \u00e9t\u00e9 utilis\u00e9e lors de la relecture du code, afin d'am\u00e9liorer la qualit\u00e9 et d\u00e9tecter d'\u00e9ventuelles erreurs.",
+      "Oui, de l'IA a été utilisée lors de la relecture du code, afin d'améliorer la qualité et détecter d'éventuelles erreurs.",
   },
   {
-    question: "Comment h\u00e9berger MonMatos soi-m\u00eame ?",
+    question: "Comment héberger MonMatos soi-même ?",
     answer: (
       <ol className="mt-2 list-decimal space-y-2 pl-5 text-left text-slate-600">
         <li>
-          <span className="font-semibold">Cloner le d\u00e9p\u00f4t</span>
+          <span className="font-semibold">Cloner le dépôt</span>
           <pre className="mt-1 rounded-lg bg-slate-100 px-3 py-2 font-mono text-sm text-slate-800">
             git clone https://github.com/OneFrenchLeft/newmatos
           </pre>
         </li>
         <li>
-          <span className="font-semibold">Installer les d\u00e9pendances</span>
+          <span className="font-semibold">Installer les dépendances</span>
           <pre className="mt-1 rounded-lg bg-slate-100 px-3 py-2 font-mono text-sm text-slate-800">
             npm install
           </pre>
         </li>
         <li>
-          <span className="font-semibold">Configurer la base de donn\u00e9es</span>
+          <span className="font-semibold">Configurer la base de données</span>
           <p className="mt-1 text-sm">
             Renommer <code className="rounded bg-slate-100 px-1">.env.example</code> en{" "}
-            <code className="rounded bg-slate-100 px-1">.env</code>, puis renseigner l'URL de votre base dans{" "}
+            <code className="rounded bg-slate-100 px-1">.env</code>, puis renseigner l&apos;URL de votre base dans{" "}
             <code className="rounded bg-slate-100 px-1">DATABASE_URL</code>.
           </p>
           <pre className="mt-1 rounded-lg bg-slate-100 px-3 py-2 font-mono text-sm text-slate-800">
@@ -76,13 +76,13 @@ const faqItems: FAQItem[] = [
           </pre>
         </li>
         <li>
-          <span className="font-semibold">Lancer le serveur de d\u00e9veloppement</span>
+          <span className="font-semibold">Lancer le serveur de développement</span>
           <pre className="mt-1 rounded-lg bg-slate-100 px-3 py-2 font-mono text-sm text-slate-800">
             npm run dev
           </pre>
         </li>
         <li>
-          <span className="font-semibold">Acc\u00e9der \u00e0 l'application</span>
+          <span className="font-semibold">Accéder à l&apos;application</span>
           <p className="mt-1 text-sm">
             Ouvrir{" "}
             <a
@@ -100,7 +100,7 @@ const faqItems: FAQItem[] = [
     ),
   },
   {
-    question: "Comment signaler un bug ou proposer une am\u00e9lioration ?",
+    question: "Comment signaler un bug ou proposer une amélioration ?",
     answer: (
       <span>
         Ouvrez une{" "}
@@ -167,7 +167,7 @@ const FAQPage: NextPageWithLayout = () => {
       </div>
 
       <p className="mt-10 text-center text-sm text-slate-400">
-        Une question non r\u00e9pondue ?{" "}
+        Une question non répondue ?{" "}
         <Link href="/contact" className="text-emerald-600 underline hover:text-emerald-700">
           Contactez-nous
         </Link>

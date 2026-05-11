@@ -17,7 +17,7 @@ const ActionsPanel: FC<UIProps<{ tents: Tent[] }>> = ({ tents }) => {
   const importMutation = trpc.group.importTents.useMutation({
     onSuccess(data) {
       trpcCtx.tents.getAll.invalidate()
-      toast.success(`${data.imported} tente(s) import\u00e9e(s) avec succ\u00e8s`)
+      toast.success(`${data.imported} tente(s) importée(s) avec succès`)
     },
     onError(err) {
       toast.error(err.message || "Erreur lors de l'import")
@@ -54,7 +54,7 @@ const ActionsPanel: FC<UIProps<{ tents: Tent[] }>> = ({ tents }) => {
             <ButtonLink href="/tentes?t=add" variant="black" size="sm" icon="BsPlusLg">Ajouter une tente</ButtonLink>
             <ButtonLink href="/tentes" variant="white" icon="TiThList" size="sm">Parcourir les tentes</ButtonLink>
             <ButtonLink href="/ce-qui-manque" variant="white" icon="MdOutlineErrorOutline" size="sm">Ce qui manque</ButtonLink>
-            <ButtonLink href="/reparation" variant="white" icon="FaWrench" size="sm">R\u00e9parations en cours</ButtonLink>
+            <ButtonLink href="/reparation" variant="white" icon="FaWrench" size="sm">Réparations en cours</ButtonLink>
             <Button type="button" icon="RiFileExcel2Fill" size="sm" onClick={downloadExcel(tents, movement)}>Exporter en .xlsx</Button>
             <Button
               type="button" icon="RiFileExcel2Fill" size="sm" variant="white"
@@ -85,15 +85,15 @@ const DeleteGroupButton: FC = () => {
 
   const handleDelete = () => {
     const answer = window.prompt(
-      'Pour confirmer la suppression d\u00e9finitive de votre groupe et de toutes ses tentes, tapez exactement : SUPPRIMER',
+      "Pour confirmer la suppression définitive de votre groupe et de toutes ses tentes, tapez exactement : SUPPRIMER",
     )
     if (answer !== "SUPPRIMER") {
-      if (answer !== null) toast.error("Confirmation incorrecte. Suppression annul\u00e9e.")
+      if (answer !== null) toast.error("Confirmation incorrecte. Suppression annulée.")
       return
     }
     toast.promise(
       deleteMutation.mutateAsync({ confirmation: "SUPPRIMER" }),
-      { loading: "Suppression en cours...", success: "Groupe supprim\u00e9", error: "Erreur lors de la suppression" },
+      { loading: "Suppression en cours...", success: "Groupe supprimé", error: "Erreur lors de la suppression" },
     )
   }
 
