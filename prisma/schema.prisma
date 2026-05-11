@@ -11,33 +11,42 @@ datasource db {
 
 model Group {
   id        String   @id @default(uuid())
-  name      String
+  name      String   @unique
   movement  Movement
   createdAt DateTime @default(now())
   tents     Tent[]
 }
 
 model Tent {
-  id                String   @id @default(uuid())
+  id                String      @id @default(uuid())
   identifyingNum    Int
-  identifyingString String?  @unique
+  identifyingString String?     @unique
   size              Int
-  unit              Unit     @default(GROUPE)
+  unit              Unit        @default(GROUPE)
   state             State
-  complete          Boolean  @default(true)
-  integrated        Boolean  @default(false)
-  type              String   @default("Canadienne")
-  pegs              Int      @default(0)
+  complete          Boolean     @default(true)
+  integrated        Boolean     @default(false)
+  type              String      @default("Canadienne")
+  pegs              Int         @default(0)
   comments          String?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
   groupId           String
-  group             Group    @relation(fields: [groupId], references: [id])
+  group             Group       @relation(fields: [groupId], references: [id])
+  loans             TentLoan[]
 
   @@unique([groupId, identifyingNum], name: "TentIdentifier")
 }
 
-
+model TentLoan {
+  id         String   @id @default(uuid())
+  tentId     String
+  tent       Tent     @relation(fields: [tentId], references: [id])
+  borrower   Unit
+  loanedAt   DateTime @default(now())
+  returnedAt DateTime?
+  note       String?
+}
 
 enum Movement {
   SGDF

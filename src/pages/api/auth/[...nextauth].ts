@@ -9,14 +9,18 @@ export const authOptions: NextAuthOptions = {
     Credentials({
       name: "credentials",
       credentials: {
-        identifier: { label: "Identifiant de Groupe", type: "text" },
+        identifier: { label: "Nom du Groupe", type: "text" },
       },
       authorize: async (credentials) => {
         const creds = await loginSchema.parseAsync(credentials)
 
-        const group = await prisma.group.findUnique({
+        // Allow login by group name (case-insensitive) OR by group id (for QR link login)
+        const group = await prisma.group.findFirst({
           where: {
-            id: creds?.identifier,
+            OR: [
+              { name: { equals: creds.identifier, mode: "insensitive" } },
+              { id: creds.identifier },
+            ],
           },
         })
 

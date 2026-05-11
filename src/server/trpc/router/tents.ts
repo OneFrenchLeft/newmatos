@@ -15,6 +15,12 @@ export const tentsRouter = t.router({
       orderBy: {
         identifyingNum: "asc",
       },
+      include: {
+        loans: {
+          orderBy: { loanedAt: "desc" },
+          take: 1,
+        },
+      },
     })
 
     return tents
@@ -23,11 +29,30 @@ export const tentsRouter = t.router({
     const { prisma } = ctx
 
     const tent = await prisma.tent.findUnique({
-      where: {
-        id: input,
+      where: { id: input },
+      include: {
+        loans: {
+          orderBy: { loanedAt: "desc" },
+          take: 1,
+        },
       },
     })
 
+    return tent
+  }),
+  // Public getter for the public tent page (no auth)
+  getPublic: t.procedure.input(z.string()).query(async ({ ctx, input }) => {
+    const { prisma } = ctx
+    const tent = await prisma.tent.findUnique({
+      where: { id: input },
+      include: {
+        loans: {
+          orderBy: { loanedAt: "desc" },
+          take: 10,
+        },
+        group: { select: { name: true, movement: true } },
+      },
+    })
     return tent
   }),
   create: authedProcedure
@@ -55,9 +80,7 @@ export const tentsRouter = t.router({
 
       try {
         const updatedTent = await prisma.tent.update({
-          where: {
-            id: input.id,
-          },
+          where: { id: input.id },
           data: {
             ...input.values,
             groupId: session.user.id,
@@ -74,9 +97,7 @@ export const tentsRouter = t.router({
 
     try {
       const deletedTent = await prisma.tent.delete({
-        where: {
-          id: input,
-        },
+        where: { id: input },
       })
 
       return deletedTent
@@ -89,28 +110,14 @@ export const tentsRouter = t.router({
 const handleError = (error: unknown) => {
   if (error instanceof PrismaClientKnownRequestError) {
     if (error.code === "P2002") {
-      throw new TRPCError({
-        message: error.code,
-        code: "CONFLICT",
-      })
+      throw new TRPCError({ message: error.code, code: "CONFLICT" })
     }
-
     if (error.code === "P2025") {
-      throw new TRPCError({
-        message: error.code,
-        code: "PRECONDITION_FAILED",
-      })
+      throw new TRPCError({ message: error.code, code: "PRECONDITION_FAILED" })
     }
-
     if (error.code === "P2003") {
-      throw new TRPCError({
-        message: error.code,
-        code: "PRECONDITION_FAILED",
-      })
+      throw new TRPCError({ message: error.code, code: "PRECONDITION_FAILED" })
     }
   }
-
-  throw new TRPCError({
-    code: "INTERNAL_SERVER_ERROR",
-  })
+  throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" })
 }

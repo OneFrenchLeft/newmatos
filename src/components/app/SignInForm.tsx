@@ -2,15 +2,11 @@ import { ILogin, loginSchema } from "@/common/validation/auth"
 import { zodFormikAdapter } from "@/common/validation/zodFormikAdapter"
 import Button from "@/components/ui/Button"
 import Logo from "@/components/ui/Logo"
-import Tooltip from "@/components/ui/Tooltip"
-import { Disclosure } from "@headlessui/react"
-import { ChevronUpIcon, EyeIcon, EyeOffIcon } from "@heroicons/react/solid"
-import classNames from "classnames"
 import { Field, Form, Formik } from "formik"
 import { signIn } from "next-auth/react"
 import Head from "next/head"
 import Link from "next/link"
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect } from "react"
 import toast from "react-hot-toast"
 import LoadingDots from "../ui/LoadingDots"
 
@@ -21,9 +17,7 @@ interface SignInFormProps {
 
 const SignInForm = ({ callbackUrl, error }: SignInFormProps) => {
   const logo = "/favicon.ico"
-  const [showIdentifier, setShowIdentifier] = useState(false)
-  const showId = () => setShowIdentifier(true)
-  const hideId = () => setShowIdentifier(false)
+
   const handleSubmit = useCallback(
     async (values: ILogin) => {
       await signIn("credentials", { ...values, callbackUrl })
@@ -48,7 +42,6 @@ const SignInForm = ({ callbackUrl, error }: SignInFormProps) => {
         <link rel="icon" href={logo} />
         <link rel="shortcut icon" type="image/x-icon" href={logo} />
         <link rel="apple-touch-icon" sizes="180x180" href={logo} />
-
         <meta charSet="utf-8" />
         <meta
           name="viewport"
@@ -69,61 +62,24 @@ const SignInForm = ({ callbackUrl, error }: SignInFormProps) => {
                 <span className="text-emerald-600">Groupe</span>
               </h1>
               <label htmlFor="identifier" className="-mb-8 font-medium">
-                Identifiant de groupe
+                Nom du groupe
               </label>
               <div className="flex w-full items-center">
-                <div className="flex w-full items-center gap-4 rounded-lg border  border-gray-200 p-3 focus-within:border-2 focus-within:border-blue-500">
+                <div className="flex w-full items-center gap-4 rounded-lg border border-gray-200 p-3 focus-within:border-2 focus-within:border-blue-500">
                   <Field
                     name="identifier"
-                    id="identifer"
-                    type={showIdentifier ? "text" : "password"}
-                    placeholder="ex: ae64a5-def8-4705-8d04-088fa"
+                    id="identifier"
+                    type="text"
+                    autoFocus
+                    placeholder="ex: Saint Vincent de Paul"
                     className="w-full bg-transparent text-sm outline-none"
+                    autoComplete="off"
                   />
-                  <div className="group relative">
-                    {showIdentifier ? (
-                      <EyeOffIcon
-                        className="hover:text-blue-gray-900 w-6 cursor-pointer transition-colors"
-                        onClick={hideId}
-                      />
-                    ) : (
-                      <EyeIcon
-                        className="hover:text-blue-gray-900 w-6 cursor-pointer transition-colors"
-                        onClick={showId}
-                      />
-                    )}
-                    <Tooltip className="-left-16 whitespace-nowrap">
-                      {`${
-                        showIdentifier ? "Cacher" : "Afficher"
-                      } l'identifiant`}
-                    </Tooltip>
-                  </div>
                 </div>
               </div>
-              <Disclosure>
-                {({ open }) => (
-                  <div>
-                    <Disclosure.Button className="-mt-5 flex w-full justify-between rounded-lg bg-blue-50 px-4 py-2 text-left text-sm font-medium text-blue-900 focus:outline-none focus-visible:ring focus-visible:ring-blue-500 focus-visible:ring-opacity-75">
-                      <span>Je n'ai pas mon identifiant</span>
-                      <ChevronUpIcon
-                        className={classNames(
-                          "h-5 w-5 transform text-blue-900 transition-transform duration-300",
-                          {
-                            "rotate-180": !open,
-                            "rotate-0": open,
-                          },
-                        )}
-                      />
-                    </Disclosure.Button>
-
-                    <Disclosure.Panel className="px-4 pt-4 pb-2 text-sm  text-slate-900">
-                      Si vous avez un QR Code vous pouvez le scanner avec votre
-                      caméra. Sinon demandez à ce que l'on vous invite dans le
-                      groupe.
-                    </Disclosure.Panel>
-                  </div>
-                )}
-              </Disclosure>
+              <p className="-mt-6 text-xs text-slate-400">
+                Entrez le nom exact de votre groupe scout.
+              </p>
               <Button
                 size="lg"
                 variant="black"
@@ -155,9 +111,9 @@ const SignInForm = ({ callbackUrl, error }: SignInFormProps) => {
 }
 
 const errorMessages: Record<string, string> = {
-  CredentialsSignin: "Identifiant incorrect",
+  CredentialsSignin: "Nom de groupe incorrect ou inexistant",
   SessionRequired: "Veuillez vous reconnecter",
-  GroupNotFound: "Nous n'avons pas trouver ce groupe",
+  GroupNotFound: "Nous n'avons pas trouvé ce groupe",
 }
 
 export default SignInForm
