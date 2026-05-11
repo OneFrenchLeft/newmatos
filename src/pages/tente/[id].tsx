@@ -1,6 +1,5 @@
 import { trpc } from "@/utils/trpc"
 import Head from "next/head"
-import Link from "next/link"
 import { useRouter } from "next/router"
 import { QRCodeCanvas } from "qrcode.react"
 import { useState } from "react"
@@ -14,6 +13,7 @@ const unitLabels: Record<string, string> = {
   COMPAGNONS: "Compagnons",
   RESPONSABLES: "Responsables",
   GROUPE: "Non attribuée",
+  // Anciennes valeurs pour rétrocompatibilité
   LOUVETEAUX: "Louveteaux",
   JEANNETTES: "Jeannettes",
   SCOUTS: "Scouts",
@@ -33,12 +33,12 @@ const stateLabels: Record<string, string> = {
 const stateColors: Record<string, string> = {
   NEUF: "bg-emerald-500",
   BON: "bg-blue-500",
-  EN_REPARATION: "bg-red-500",
+  EN_REPARATION: "bg-yellow-500",
   MAUVAIS: "bg-amber-500",
-  INUTILISABLE: "bg-red-700",
+  INUTILISABLE: "bg-red-500",
 }
 
-const MISSING_LABELS: Record<string, string> = {
+const ITEM_LABELS: Record<string, string> = {
   zip: "Zip",
   faitiere: "Faitière",
   doubleToit: "Double toit",
@@ -48,41 +48,10 @@ const MISSING_LABELS: Record<string, string> = {
   sacTente: "Sac de tentes",
 }
 
-/** Retourne les items manquants si comments est un JSON checklist, sinon {} */
-function parseMissingItems(comments: string | null | undefined): Record<string, boolean> {
-  if (!comments) return {}
-  try {
-    const parsed = JSON.parse(comments)
-    if (
-      typeof parsed === "object" &&
-      parsed !== null &&
-      !Array.isArray(parsed) &&
-      "zip" in parsed
-    ) {
-      return parsed as Record<string, boolean>
-    }
-  } catch { /* not JSON */ }
-  return {}
-}
+const STORAGE_KEY = "ce-qui-manque"
 
-/** Retourne le commentaire texte si ce n'est PAS un JSON checklist */
-function getRealComment(comments: string | null | undefined): string | null {
-  if (!comments) return null
-  try {
-    const parsed = JSON.parse(comments)
-    if (
-      typeof parsed === "object" &&
-      parsed !== null &&
-      !Array.isArray(parsed) &&
-      "zip" in parsed
-    ) {
-      return null
-    }
-  } catch { /* pas du JSON = vrai commentaire */ }
-  return comments
-}
-
-const RED_STATES = new Set(["EN_REPARATION", "INUTILISABLE", "MAUVAIS"])
+type MissingItems = Record<string, boolean>
+type MissingState = Record<string, MissingItems>
 
 export default function PublicTentPage() {
   const router = useRouter()
@@ -90,28 +59,17 @@ export default function PublicTentPage() {
 
   const { data: tent, isLoading, refetch } = trpc.tents.getPublic.useQuery(tentId, {
     enabled: !!tentId,
-    refetchInterval: 10_000,
-    refetchIntervalInBackground: false,
   })
 
   const { data: loans, refetch: refetchLoans } = trpc.loans.getPublicHistory.useQuery(tentId, {
     enabled: !!tentId,
   })
 
-  const reportRepairMutation = trpc.tents.reportProblem.useMutation({
-    onSuccess: () => {
-      toast.success("Tente signalée en réparation !")
-      setShowRepairConfirm(false)
-      void refetch()
-    },
-    onError: () => toast.error("Erreur lors du signalement"),
-  })
-
   const createLoanMutation = trpc.loans.create.useMutation({
     onSuccess: () => {
       toast.success("Emprunt enregistré !")
-      void refetch()
-      void refetchLoans()
+      refetch()
+      refetchLoans()
       setSelectedUnit("")
       setNote("")
       setShowLoanForm(false)
@@ -122,7 +80,29 @@ export default function PublicTentPage() {
   const [showLoanForm, setShowLoanForm] = useState(false)
   const [selectedUnit, setSelectedUnit] = useState("")
   const [note, setNote] = useState("")
-  const [showRepairConfirm, setShowRepairConfirm] = useState(false)
+
+  // Ce qui manque — state local sessionStorage
+  const [missingState, setMissingState] = useState<MissingState>(() => {
+    if (typeof window === "undefined") return {}
+    try {
+      const saved = sessionStorage.getItem(STORAGE_KEY)
+      return saved ? (JSON.parse(saved) as MissingState) : {}
+    } catch { return {} }
+  })
+
+  const toggleMissing = (field: string) => {
+    if (!tentId) return
+    setMissingState((prev) => {
+      const updated = {
+        ...prev,
+        [tentId]: { ...(prev[tentId] ?? {}), [field]: !(prev[tentId]?.[field] ?? false) },
+      }
+      try { sessionStorage.setItem(STORAGE_KEY, JSON.stringify(updated)) } catch { /* ignore */ }
+      return updated
+    })
+  }
+
+  const getMissing = (): MissingItems => missingState[tentId] ?? {}
 
   const pageUrl = typeof window !== "undefined" ? window.location.href : ""
 
@@ -146,15 +126,11 @@ export default function PublicTentPage() {
     )
   }
 
-  const isProblematic = !tent.complete || RED_STATES.has(tent.state)
   const activeLoan = loans?.find((l) => !l.returnedAt)
   const loanHistory = loans ?? []
-  const missingItems = parseMissingItems(tent.comments)
-  const missingKeys = Object.entries(missingItems).filter(([, v]) => v).map(([k]) => k)
-  const realComment = getRealComment(tent.comments)
 
   return (
-    <div className={`min-h-screen px-4 py-8 ${isProblematic ? "bg-red-50" : "bg-slate-50"}`}>
+    <div className="min-h-screen bg-slate-50 px-4 py-8">
       <Head>
         <title>Tente {tent.identifyingLabel} — {tent.group?.name ?? "MonMatos"}</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -162,114 +138,30 @@ export default function PublicTentPage() {
 
       <div className="mx-auto max-w-lg space-y-6">
         {/* Header */}
-        <div className={`rounded-2xl p-6 shadow-sm ${
-          isProblematic ? "bg-red-100 border border-red-300" : "bg-white"
-        }`}>
+        <div className="rounded-2xl bg-white p-6 shadow-sm">
           <div className="flex items-center gap-5">
-            <div className={`flex h-20 w-20 flex-shrink-0 items-center justify-center rounded-full border-4 text-lg font-bold ${
-              isProblematic ? "border-red-500 text-red-600" : "border-slate-800 text-slate-800"
-            }`}>
+            <div className="flex h-20 w-20 flex-shrink-0 items-center justify-center rounded-full border-4 border-slate-800 text-lg font-bold text-slate-800">
               {tent.identifyingLabel}
             </div>
             <div>
               <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
                 {tent.group?.name}
               </p>
-              <h1 className={`text-2xl font-bold ${
-                isProblematic ? "text-red-700" : "text-slate-800"
-              }`}>
+              <h1 className="text-2xl font-bold text-slate-800">
                 Tente {tent.identifyingLabel}
               </h1>
-              <div className="mt-1 flex flex-wrap gap-1">
-                <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-semibold text-white ${
+              <span
+                className={`mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-semibold text-white ${
                   stateColors[tent.state] ?? "bg-slate-400"
-                }`}>
-                  {stateLabels[tent.state] ?? tent.state}
-                </span>
-                {!tent.complete && (
-                  <span className="inline-block rounded-full bg-red-500 px-2 py-0.5 text-xs font-semibold text-white">
-                    Incomplète
-                  </span>
-                )}
-              </div>
+                }`}
+              >
+                {stateLabels[tent.state] ?? tent.state}
+              </span>
             </div>
           </div>
-
-          {/* Éléments manquants */}
-          {missingKeys.length > 0 && (
-            <div className="mt-4">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-red-500">
-                Éléments manquants
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {missingKeys.map((k) => (
-                  <span
-                    key={k}
-                    className="rounded-full border border-red-200 bg-white px-3 py-1 text-xs font-semibold text-red-700"
-                  >
-                    ⚠️ {MISSING_LABELS[k] ?? k}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
 
-        {/* Bannière EN_REPARATION */}
-        {tent.state === "EN_REPARATION" && (
-          <div className="rounded-2xl border border-red-300 bg-red-50 p-4 shadow-sm">
-            <p className="text-sm font-semibold text-red-700">
-              🔧 Cette tente est actuellement en réparation.
-            </p>
-          </div>
-        )}
-
-        {/* Bannière INUTILISABLE */}
-        {tent.state === "INUTILISABLE" && (
-          <div className="rounded-2xl border border-red-400 bg-red-100 p-4 shadow-sm">
-            <p className="text-sm font-semibold text-red-800">
-              🚫 Cette tente est inutilisable.
-            </p>
-          </div>
-        )}
-
-        {/* Signaler un problème */}
-        {tent.state !== "EN_REPARATION" && tent.state !== "INUTILISABLE" && (
-          <div className="rounded-2xl bg-white p-4 shadow-sm">
-            {!showRepairConfirm ? (
-              <button
-                onClick={() => setShowRepairConfirm(true)}
-                className="w-full rounded-xl border-2 border-red-300 py-3 text-sm font-semibold text-red-600 transition hover:bg-red-50 active:scale-[0.98]"
-              >
-                🔧 Signaler un problème
-              </button>
-            ) : (
-              <div className="space-y-3">
-                <p className="text-sm font-medium text-slate-700">
-                  Confirmer le signalement ? La tente passera en{" "}
-                  <strong>En réparation</strong>.
-                </p>
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => setShowRepairConfirm(false)}
-                    className="flex-1 rounded-xl border border-slate-200 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
-                  >
-                    Annuler
-                  </button>
-                  <button
-                    disabled={reportRepairMutation.isLoading}
-                    onClick={() => reportRepairMutation.mutate({ id: tent.id })}
-                    className="flex-1 rounded-xl bg-red-600 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-40"
-                  >
-                    {reportRepairMutation.isLoading ? "Envoi..." : "Confirmer"}
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Détails */}
+        {/* Details */}
         <div className="rounded-2xl bg-white p-6 shadow-sm">
           <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-slate-400">
             Caractéristiques
@@ -277,46 +169,59 @@ export default function PublicTentPage() {
           <dl className="space-y-3 text-sm">
             <div className="flex justify-between">
               <dt className="font-medium text-slate-600">Type</dt>
-              <dd className="font-semibold text-slate-900">{tent.type}</dd>
+              <dd className="font-semibold text-slate-900">{tent.type.toUpperCase()}</dd>
             </div>
             <div className="flex justify-between">
               <dt className="font-medium text-slate-600">Taille</dt>
-              <dd className="font-semibold text-slate-900">
-                {tent.size} place{tent.size > 1 ? "s" : ""}
-              </dd>
+              <dd className="font-semibold text-slate-900">{tent.size} place{tent.size > 1 ? "s" : ""}</dd>
             </div>
             <div className="flex justify-between">
               <dt className="font-medium text-slate-600">Sardines</dt>
-              <dd className="font-semibold text-slate-900">
-                {tent.pegs ?? 0} sardine{(tent.pegs ?? 0) !== 1 ? "s" : ""}
-              </dd>
+              <dd className="font-semibold text-slate-900">{tent.pegs} sardine{tent.pegs > 1 ? "s" : ""}</dd>
             </div>
             <div className="flex justify-between">
               <dt className="font-medium text-slate-600">Tapis de sol</dt>
-              <dd className="font-semibold text-slate-900">
-                {tent.integrated ? "Intégré" : "Normal"}
-              </dd>
+              <dd className="font-semibold text-slate-900">{tent.integrated ? "Intégré" : "Normal"}</dd>
             </div>
             <div className="flex justify-between">
               <dt className="font-medium text-slate-600">Complète</dt>
-              <dd className={`font-semibold ${
-                tent.complete ? "text-slate-900" : "text-red-600"
-              }`}>
-                {tent.complete ? "Oui" : "Non"}
-              </dd>
+              <dd className="font-semibold text-slate-900">{tent.complete ? "Oui" : "Non"}</dd>
             </div>
-            {realComment && (
-              <div className="flex justify-between gap-4">
+            {tent.comments && (
+              <div className="flex justify-between">
                 <dt className="font-medium text-slate-600">Commentaire</dt>
-                <dd className="max-w-[55%] text-right font-semibold text-slate-900">
-                  {realComment}
-                </dd>
+                <dd className="max-w-[55%] text-right font-semibold text-slate-900">{tent.comments}</dd>
               </div>
             )}
           </dl>
         </div>
 
-        {/* Emprunt en cours */}
+        {/* Ce qui manque */}
+        <div className="rounded-2xl bg-white p-6 shadow-sm">
+          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-slate-400">
+            Ce qui manque
+          </h2>
+          <div className="space-y-2">
+            {Object.entries(ITEM_LABELS).map(([key, label]) => (
+              <label key={key} className="flex cursor-pointer items-center gap-3 rounded-lg p-2 transition hover:bg-slate-50">
+                <input
+                  type="checkbox"
+                  checked={getMissing()[key] ?? false}
+                  onChange={() => toggleMissing(key)}
+                  className="h-4 w-4 rounded accent-emerald-600"
+                />
+                <span className="text-sm font-medium text-slate-700">{label}</span>
+              </label>
+            ))}
+          </div>
+          {Object.values(getMissing()).some(Boolean) && (
+            <p className="mt-3 text-xs text-amber-600 font-medium">
+              ⚠️ {Object.values(getMissing()).filter(Boolean).length} élément(s) manquant(s) noté(s)
+            </p>
+          )}
+        </div>
+
+        {/* Active loan */}
         <div className="rounded-2xl bg-white p-6 shadow-sm">
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-slate-400">
             Emprunt en cours
@@ -341,7 +246,69 @@ export default function PublicTentPage() {
           )}
         </div>
 
-        {/* Historique des emprunts */}
+        {/* Loan form */}
+        <div className="rounded-2xl bg-white p-6 shadow-sm">
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-slate-400">
+            Enregistrer un emprunt
+          </h2>
+          {!showLoanForm ? (
+            <button
+              onClick={() => setShowLoanForm(true)}
+              className="w-full rounded-xl bg-emerald-600 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700 active:scale-[0.98]"
+            >
+              + Nouvelle sortie
+            </button>
+          ) : (
+            <div className="space-y-4">
+              <div>
+                <label className="mb-1 block text-xs font-medium text-slate-600">Unité emprunteuse</label>
+                <select
+                  value={selectedUnit}
+                  onChange={(e) => setSelectedUnit(e.target.value)}
+                  className="w-full rounded-lg border border-slate-200 p-2 text-sm outline-none focus:border-emerald-500"
+                >
+                  <option value="">— Choisir une unité —</option>
+                  {Object.entries(unitLabels).map(([key, lbl]) => (
+                    <option key={key} value={key}>{lbl}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-slate-600">Note (optionnel)</label>
+                <input
+                  type="text"
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  placeholder="ex: Camp d'été 2026"
+                  className="w-full rounded-lg border border-slate-200 p-2 text-sm outline-none focus:border-emerald-500"
+                />
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowLoanForm(false)}
+                  className="flex-1 rounded-xl border border-slate-200 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
+                >
+                  Annuler
+                </button>
+                <button
+                  disabled={!selectedUnit || createLoanMutation.isLoading}
+                  onClick={() =>
+                    createLoanMutation.mutate({
+                      tentId: tent.id,
+                      borrower: selectedUnit,
+                      note: note || undefined,
+                    })
+                  }
+                  className="flex-1 rounded-xl bg-emerald-600 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-40"
+                >
+                  {createLoanMutation.isLoading ? "Envoi..." : "Confirmer"}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Loan history */}
         {loanHistory.length > 0 && (
           <div className="rounded-2xl bg-white p-6 shadow-sm">
             <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-slate-400">
@@ -359,12 +326,9 @@ export default function PublicTentPage() {
                     </p>
                     <p className="text-xs text-slate-500">
                       {new Date(loan.loanedAt).toLocaleDateString("fr-FR")}
-                      {loan.returnedAt &&
-                        ` → ${new Date(loan.returnedAt).toLocaleDateString("fr-FR")}`}
+                      {loan.returnedAt && ` → ${new Date(loan.returnedAt).toLocaleDateString("fr-FR")}`}
                     </p>
-                    {loan.note && (
-                      <p className="mt-0.5 text-xs italic text-slate-400">{loan.note}</p>
-                    )}
+                    {loan.note && <p className="mt-0.5 text-xs italic text-slate-400">{loan.note}</p>}
                   </div>
                 </li>
               ))}
@@ -379,20 +343,8 @@ export default function PublicTentPage() {
           </h2>
           <div className="flex flex-col items-center gap-4">
             <QRCodeCanvas value={pageUrl} size={160} />
-            <p className="text-center text-xs text-slate-400">
-              Scannez pour accéder à cette page
-            </p>
+            <p className="text-center text-xs text-slate-400">Scannez pour accéder à cette page</p>
           </div>
-        </div>
-
-        {/* Lien gestion complète */}
-        <div className="rounded-2xl bg-white p-4 shadow-sm text-center">
-          <Link
-            href="/tentes"
-            className="text-sm font-medium text-emerald-700 underline underline-offset-2 hover:text-emerald-900"
-          >
-            → Accéder à la gestion complète des tentes
-          </Link>
         </div>
       </div>
     </div>
