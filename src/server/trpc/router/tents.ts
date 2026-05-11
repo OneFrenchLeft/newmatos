@@ -20,6 +20,17 @@ const checklistSchema = z.object({
   missingSacTente:   z.boolean(),
 })
 
+/** Champs booléens checklist partagés entre getAll et getPublic */
+const CHECKLIST_SELECT = {
+  missingZip:        true,
+  missingFaitiere:   true,
+  missingDoubleToit: true,
+  missingToile:      true,
+  missingTapis:      true,
+  missingSardines:   true,
+  missingSacTente:   true,
+} as const
+
 export const tentsRouter = t.router({
   getAll: authedProcedure.query(async ({ ctx }) => {
     const { session, prisma } = ctx
@@ -47,8 +58,28 @@ export const tentsRouter = t.router({
     const { prisma } = ctx
     return prisma.tent.findUnique({
       where: { id: input },
-      include: {
-        loans: { orderBy: { loanedAt: "desc" }, take: 10 },
+      select: {
+        id: true,
+        identifyingLabel: true,
+        type: true,
+        size: true,
+        state: true,
+        complete: true,
+        integrated: true,
+        pegs: true,
+        inspectionHistory: true,
+        ...CHECKLIST_SELECT,
+        loans: {
+          orderBy: { loanedAt: "desc" },
+          take: 10,
+          select: {
+            id: true,
+            borrower: true,
+            loanedAt: true,
+            returnedAt: true,
+            note: true,
+          },
+        },
         group: { select: { name: true, movement: true } },
       },
     })
@@ -89,7 +120,7 @@ export const tentsRouter = t.router({
       } catch (error) { handleError(error) }
     }),
 
-  // Met à jour les booléens d'éléments manquants + complete
+  // Met à jour les booléens checklist + recalcule complete
   updateChecklist: t.procedure
     .input(z.object({ id: z.string(), checklist: checklistSchema }))
     .mutation(async ({ ctx, input }) => {
@@ -103,7 +134,7 @@ export const tentsRouter = t.router({
       } catch (error) { handleError(error) }
     }),
 
-  // Met à jour l'historique de contrôle (tableau de dates ISO, max conservé côté client)
+  // Met à jour l'historique de contrôle (tableau JSON de dates ISO)
   updateInspectionHistory: t.procedure
     .input(z.object({ id: z.string(), dates: z.array(z.string()) }))
     .mutation(async ({ ctx, input }) => {

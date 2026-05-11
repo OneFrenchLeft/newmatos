@@ -47,26 +47,27 @@ const ITEM_LABELS: Record<string, string> = {
   missingSacTente:   "Sac de tentes",
 }
 
-const ITEM_KEYS = Object.keys(ITEM_LABELS)
+const ITEM_KEYS = Object.keys(ITEM_LABELS) as ChecklistKey[]
 
-type Checklist = {
-  missingZip: boolean
-  missingFaitiere: boolean
-  missingDoubleToit: boolean
-  missingToile: boolean
-  missingTapis: boolean
-  missingSardines: boolean
-  missingSacTente: boolean
-}
+type ChecklistKey =
+  | "missingZip"
+  | "missingFaitiere"
+  | "missingDoubleToit"
+  | "missingToile"
+  | "missingTapis"
+  | "missingSardines"
+  | "missingSacTente"
+
+type Checklist = Record<ChecklistKey, boolean>
 
 const DEFAULT_CHECKLIST: Checklist = {
-  missingZip: false,
-  missingFaitiere: false,
+  missingZip:        false,
+  missingFaitiere:   false,
   missingDoubleToit: false,
-  missingToile: false,
-  missingTapis: false,
-  missingSardines: false,
-  missingSacTente: false,
+  missingToile:      false,
+  missingTapis:      false,
+  missingSardines:   false,
+  missingSacTente:   false,
 }
 
 function parseInspectionHistory(raw: string | null | undefined): string[] {
@@ -76,17 +77,6 @@ function parseInspectionHistory(raw: string | null | undefined): string[] {
     if (Array.isArray(parsed)) return parsed as string[]
   } catch { /* ignore */ }
   return []
-}
-
-/** Retourne null si le commentaire est du JSON (legacy checklist) */
-function getRealComment(comments: string | null | undefined): string | null {
-  if (!comments) return null
-  try {
-    JSON.parse(comments)
-    return null // c'est du JSON => on cache
-  } catch {
-    return comments // c'est du texte libre => on affiche
-  }
 }
 
 export default function PublicTentPage() {
@@ -103,30 +93,30 @@ export default function PublicTentPage() {
     enabled: !!tentId,
   })
 
+  // ── Checklist : lecture directe depuis les booléens BDD ──────────────────
   const [checklist, setChecklist] = useState<Checklist>(DEFAULT_CHECKLIST)
   const [checklistReady, setChecklistReady] = useState(false)
 
   useEffect(() => {
     if (!tent) return
-    const t = tent as unknown as Record<string, unknown>
     setChecklist({
-      missingZip:        typeof t.missingZip === "boolean"        ? t.missingZip        : false,
-      missingFaitiere:   typeof t.missingFaitiere === "boolean"   ? t.missingFaitiere   : false,
-      missingDoubleToit: typeof t.missingDoubleToit === "boolean" ? t.missingDoubleToit : false,
-      missingToile:      typeof t.missingToile === "boolean"      ? t.missingToile      : false,
-      missingTapis:      typeof t.missingTapis === "boolean"      ? t.missingTapis      : false,
-      missingSardines:   typeof t.missingSardines === "boolean"   ? t.missingSardines   : false,
-      missingSacTente:   typeof t.missingSacTente === "boolean"   ? t.missingSacTente   : false,
+      missingZip:        tent.missingZip        ?? false,
+      missingFaitiere:   tent.missingFaitiere   ?? false,
+      missingDoubleToit: tent.missingDoubleToit ?? false,
+      missingToile:      tent.missingToile      ?? false,
+      missingTapis:      tent.missingTapis      ?? false,
+      missingSardines:   tent.missingSardines   ?? false,
+      missingSacTente:   tent.missingSacTente   ?? false,
     })
     setChecklistReady(true)
   }, [
-    (tent as unknown as Record<string, unknown>)?.missingZip,
-    (tent as unknown as Record<string, unknown>)?.missingFaitiere,
-    (tent as unknown as Record<string, unknown>)?.missingDoubleToit,
-    (tent as unknown as Record<string, unknown>)?.missingToile,
-    (tent as unknown as Record<string, unknown>)?.missingTapis,
-    (tent as unknown as Record<string, unknown>)?.missingSardines,
-    (tent as unknown as Record<string, unknown>)?.missingSacTente,
+    tent?.missingZip,
+    tent?.missingFaitiere,
+    tent?.missingDoubleToit,
+    tent?.missingToile,
+    tent?.missingTapis,
+    tent?.missingSardines,
+    tent?.missingSacTente,
   ])
 
   const updateChecklistMutation = trpc.tents.updateChecklist.useMutation({
@@ -134,22 +124,22 @@ export default function PublicTentPage() {
     onError: () => toast.error("Erreur lors de la sauvegarde"),
   })
 
-  const toggleItem = (key: string) => {
+  const toggleItem = (key: ChecklistKey) => {
     if (!tentId || !checklistReady) return
-    const next = { ...checklist, [key]: !checklist[key as keyof Checklist] }
+    const next = { ...checklist, [key]: !checklist[key] }
     setChecklist(next)
     updateChecklistMutation.mutate({ id: tentId, checklist: next })
   }
 
+  // ── Historique de contrôle ───────────────────────────────────────────────
   const [inspections, setInspections] = useState<string[]>([])
   const [editingIdx, setEditingIdx] = useState<number | null>(null)
   const [editValue, setEditValue] = useState("")
 
   useEffect(() => {
     if (!tent) return
-    const raw = (tent as unknown as Record<string, unknown>).inspectionHistory as string | null
-    setInspections(parseInspectionHistory(raw))
-  }, [(tent as unknown as Record<string, unknown>)?.inspectionHistory])
+    setInspections(parseInspectionHistory(tent.inspectionHistory))
+  }, [tent?.inspectionHistory])
 
   const updateInspectionMutation = trpc.tents.updateInspectionHistory.useMutation({
     onSuccess: () => void refetch(),
@@ -174,6 +164,7 @@ export default function PublicTentPage() {
     setEditValue("")
   }
 
+  // ── Emprunts ─────────────────────────────────────────────────────────────
   const createLoanMutation = trpc.loans.create.useMutation({
     onSuccess: () => {
       toast.success("Emprunt enregistré !")
@@ -215,7 +206,6 @@ export default function PublicTentPage() {
   const activeLoan = loans?.find((l) => !l.returnedAt)
   const loanHistory = loans ?? []
   const missingCount = Object.values(checklist).filter(Boolean).length
-  const realComment = getRealComment(tent.comments)
 
   return (
     <div className="min-h-screen bg-slate-50 px-4 py-8">
@@ -246,7 +236,7 @@ export default function PublicTentPage() {
           <div className="mt-4 rounded-xl bg-slate-50 px-4 py-2 text-xs text-slate-500 flex items-center gap-2">
             <span>🗓️</span>
             {inspections.length > 0
-              ? <span>Dernier contrôle : <strong className="text-slate-700">{new Date(inspections[inspections.length - 1] as string).toLocaleDateString("fr-FR")}</strong></span>
+              ? <span>Dernier contrôle : <strong className="text-slate-700">{new Date(inspections[inspections.length - 1] as string).toLocaleDateString("fr-FR")}</strong></span>
               : <span className="italic">Aucun contrôle enregistré</span>
             }
           </div>
@@ -278,13 +268,6 @@ export default function PublicTentPage() {
               <dt className="font-medium text-slate-600">Complète</dt>
               <dd className="font-semibold text-slate-900">{tent.complete ? "Oui" : "Non"}</dd>
             </div>
-            {/* Commentaire : affiché seulement si c'est du texte libre (pas du JSON legacy) */}
-            {realComment && (
-              <div className="flex justify-between">
-                <dt className="font-medium text-slate-600">Commentaire</dt>
-                <dd className="max-w-[55%] text-right font-semibold text-slate-900">{realComment}</dd>
-              </div>
-            )}
           </dl>
         </div>
 
@@ -343,7 +326,7 @@ export default function PublicTentPage() {
               <label key={key} className="flex cursor-pointer items-center gap-3 rounded-lg p-2 transition hover:bg-slate-50">
                 <input
                   type="checkbox"
-                  checked={checklist[key as keyof Checklist]}
+                  checked={checklist[key]}
                   onChange={() => toggleItem(key)}
                   className="h-4 w-4 rounded accent-emerald-600"
                   disabled={!checklistReady || updateChecklistMutation.isLoading}

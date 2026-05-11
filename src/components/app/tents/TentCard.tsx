@@ -59,10 +59,14 @@ const TentCard: FC<UIProps<{ tent: Tent }>> = ({ tent }) => {
   const isProblematic = !complete || state === "EN_REPARATION"
   const circleBorder = isProblematic ? "border-red-500" : "border-slate-800"
 
-  const tentRecord = tent as unknown as Record<string, unknown>
-  const missingKeys = MISSING_KEYS.filter((k) => tentRecord[k] === true)
+  // Booléens checklist directement depuis le type Tent (inféré de getAll)
+  const missingKeys = MISSING_KEYS.filter(
+    (k) => (tent as unknown as Record<string, unknown>)[k] === true
+  )
 
-  const inspections = parseInspectionHistory(tentRecord.inspectionHistory as string | null)
+  const inspections = parseInspectionHistory(
+    (tent as unknown as Record<string, unknown>).inspectionHistory as string | null
+  )
   const lastInspection = inspections.length > 0
     ? new Date(inspections[inspections.length - 1] as string).toLocaleDateString("fr-FR")
     : null
