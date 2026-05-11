@@ -99,18 +99,22 @@ const TentUpdatePanel: FC<UIProps<{ tent: Tent }>> = ({ tent }) => {
           <TentInput label="Complète ?" value={complete ? "OUI" : "NON"} setValue={(v) => setComplete(v === "OUI")} options={[["OUI","OUI"],["NON","NON"]]} />
           <TentInput label="TYPE" value={type.toUpperCase()} setValue={setType} options={[["CANADIENNE","CANADIENNE"],["QUECHUA","QUECHUA"],["MARABOUT","MARABOUT"]]} />
           <TentInput label="Tapis de sol" value={integrated ? "INTÉGRÉ" : "NORMAL"} setValue={(v) => setIntegrated(v === "INTÉGRÉ")} options={[["INTÉGRÉ","INTÉGRÉ"],["NORMAL","NORMAL"]]} />
-          {/* Sardines — champ libre */}
-          <div className="flex items-center justify-between rounded-lg border border-slate-200 p-3">
-            <span className="font-medium text-slate-700">Sardines</span>
-            <input
-              type="number"
-              min={0}
-              max={100}
-              placeholder="Nombre"
-              value={pegs === "" ? "" : pegs}
-              onChange={(e) => setPegs(e.target.value === "" ? "" : parseInt(e.target.value))}
-              className="w-24 rounded-md border border-slate-200 p-2 text-center text-sm outline-none focus:border-blue-400"
-            />
+          {/* Sardines — même CSS que TentInput */}
+          <div className="flex items-center rounded-md text-center text-sm font-semibold bg-gray-200">
+            <span className="w-[50%] truncate rounded-md rounded-r-none bg-slate-900 px-1 py-2 text-slate-50">
+              Sardines
+            </span>
+            <div className="w-full cursor-pointer pr-1">
+              <input
+                type="number"
+                min={0}
+                max={100}
+                placeholder="Nombre"
+                value={pegs === "" ? "" : pegs}
+                onChange={(e) => setPegs(e.target.value === "" ? "" : parseInt(e.target.value))}
+                className="w-full border-none bg-transparent py-1 px-4 font-semibold outline-none text-center"
+              />
+            </div>
           </div>
         </div>
         <Textarea label="Commentaires" value={comments} onChange={(e) => setComments(e.target.value)} />

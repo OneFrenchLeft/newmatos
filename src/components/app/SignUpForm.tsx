@@ -4,9 +4,6 @@ import Button from "@/components/ui/Button"
 import Logo from "@/components/ui/Logo"
 import { movements } from "@/utils/records"
 import { trpc } from "@/utils/trpc"
-import { Disclosure } from "@headlessui/react"
-import { ChevronUpIcon } from "@heroicons/react/outline"
-import classNames from "classnames"
 import { Field, Form, Formik } from "formik"
 import { signIn } from "next-auth/react"
 import Head from "next/head"
@@ -23,14 +20,14 @@ const SignUpForm = () => {
     async (values: IRegister) => {
       toast
         .promise(registerMutation.mutateAsync(values), {
-          loading: "Cr\u00e9ation du groupe ...",
-          error: "Veuillez r\u00e9essayer plus tard",
-          success: "Vous allez \u00eatre redirig\u00e9",
+          loading: "Création du groupe ...",
+          error: "Veuillez réessayer plus tard",
+          success: "Vous allez être redirigé",
         })
         .then((id) =>
           signIn("credentials", {
             identifier: id,
-            callbackUrl: "/groupe?connected=1",
+            callbackUrl: "/groupe",
           }),
         )
     },
@@ -86,7 +83,6 @@ const SignUpForm = () => {
                     id="movement"
                     as="select"
                     name="movement"
-                    placeholder="ex: Saint Vincent de Paul"
                     className="w-full bg-transparent text-sm outline-none"
                   >
                     {Object.entries(movements).map(([movement, label]) => (
@@ -97,41 +93,6 @@ const SignUpForm = () => {
                   </Field>
                 </div>
               </div>
-              <Disclosure>
-                {({ open }) => (
-                  <div>
-                    <Disclosure.Button className="-mt-5 flex w-full justify-between rounded-lg bg-blue-50 px-4 py-2 text-left text-sm font-medium text-blue-900 focus:outline-none focus-visible:ring focus-visible:ring-blue-500 focus-visible:ring-opacity-75">
-                      <span>Il n'y a pas mon mouvement</span>
-                      <ChevronUpIcon
-                        className={classNames(
-                          "h-5 w-5 transform text-blue-900 transition-transform duration-300",
-                          {
-                            "rotate-180": !open,
-                            "rotate-0": open,
-                          },
-                        )}
-                      />
-                    </Disclosure.Button>
-                    <Disclosure.Panel className="px-4 pt-4 pb-2 text-sm text-slate-900">
-                      Venez nous en parler sur{" "}
-                      <a
-                        href="https://discord.com/invite/qjvvM6Wya6"
-                        target="_blank"
-                        rel="noreferrer"
-                        className="font-medium text-blue-500"
-                      >
-                        Discord
-                      </a>{" "}
-                      ou envoyez-nous un{" "}
-                      <Link href="/contact" className="font-medium text-blue-500">
-                        Message
-                      </Link>
-                      . Nous essayerons d'ajouter votre mouvement et ses
-                      sp\u00e9cificit\u00e9s.
-                    </Disclosure.Panel>
-                  </div>
-                )}
-              </Disclosure>
               <Button
                 size="lg"
                 variant="black"
@@ -142,7 +103,7 @@ const SignUpForm = () => {
                 {isSubmitting ? <LoadingDots /> : "C'est parti !"}
               </Button>
               <p className="text-sm">
-                Votre groupe est d\u00e9j\u00e0 inscrit ?{" "}
+                Votre groupe est déjà inscrit ?{" "}
                 <Link
                   href="/connexion"
                   className="w-fit pl-1 font-medium text-blue-500 focus:bg-blue-300/20 focus:outline-none"
@@ -155,7 +116,7 @@ const SignUpForm = () => {
               href="/"
               className="mx-auto mt-10 block w-fit text-sm underline"
             >
-              Revenir \u00e0 l'accueil
+              Revenir à l'accueil
             </Link>
           </div>
         )}

@@ -53,20 +53,9 @@ const MobileNavbar = () => {
               href="/foire-aux-questions"
               icon="RiQuestionnaireFill"
             />
-            <HeaderLink
-              label="Tutoriels"
-              href="/tutoriels"
-              icon="FaGraduationCap"
-            />
-            <HeaderLink label="Nous contacter" href="/contact" icon="HiMail" />
-            <HeaderLink
-              label="Nous soutenir"
-              href="/nous-soutenir"
-              icon="HiHeart"
-            />
           </nav>
           <ButtonLink
-            href={status === "authenticated" ? "/groupe" : "/tentes"}
+            href={status === "authenticated" ? "/groupe" : "/connexion"}
             size="sm"
             variant="black"
             className="mx-auto mt-auto mb-10 max-w-fit"

@@ -1,14 +1,9 @@
-import ComingSoon from "@/components/ui/ComingSoon"
-import PublicLayout from "@/components/www/Layout"
-import { ReactElement } from "react"
-import { NextPageWithLayout } from "./_app"
+import { GetServerSideProps } from "next"
 
-const TutorielsPage: NextPageWithLayout = () => {
-  return <ComingSoon name="Tutoriels" />
+export const getServerSideProps: GetServerSideProps = async () => {
+  return { redirect: { destination: "/", permanent: false } }
 }
 
-TutorielsPage.getLayout = (page: ReactElement) => (
-  <PublicLayout>{page}</PublicLayout>
-)
-
-export default TutorielsPage
+export default function TutorielsPage() {
+  return null
+}

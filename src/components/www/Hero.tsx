@@ -11,7 +11,7 @@ const Hero = () => {
         <span className="bg-gradient-to-tl from-emerald-400 to-emerald-600 bg-clip-text text-transparent">
           matériel
         </span>{" "}
-        en un clin d'oeil
+        en un clin d'œil
       </h1>
       <p className="mx-auto mt-6 max-w-3xl text-center text-lg text-slate-600">
         Un outil de gestion de matériel centralisé, simple et intuitif.
@@ -27,15 +27,6 @@ const Hero = () => {
           {status === "authenticated"
             ? "Dashboard de mon groupe"
             : "Inscrire mon groupe"}
-        </ButtonLink>
-        <ButtonLink
-          href="https://monmatos.org/connexion?i=69c014bd-d264-4ff9-a734-ac9dddabb212&callbackUrl=/groupe"
-          target="_blank"
-          size="md"
-          className="max-w-fit"
-          icon="PlayIcon"
-        >
-          Voir la démo
         </ButtonLink>
       </div>
     </div>

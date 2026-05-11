@@ -17,7 +17,7 @@ const GroupPage: NextPageWithLayout = () => {
   useEffect(() => {
     if (router.query.connected) {
       toast.success("Bienvenue !", { id: "welcome-toast" })
-      router.replace("/", undefined, { shallow: true })
+      router.replace("/groupe", undefined, { shallow: true })
     }
   }, [router])
 

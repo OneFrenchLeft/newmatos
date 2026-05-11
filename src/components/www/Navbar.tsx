@@ -38,18 +38,11 @@ const Navbar = () => {
             </Link>
           </div>
           <nav className="ml-10 hidden items-center gap-6 sm:flex">
-            <HeaderLink label="Tutoriels" href="/tutoriels" />
             <HeaderLink label="FAQ" href="/foire-aux-questions" />
             <HeaderLink label="Inscrire mon groupe" href="/inscription" />
           </nav>
         </div>
-        <div className="hidden items-center divide-x-2 lg:flex">
-          <HeaderLink label="Nous contacter" href="/contact" className="px-4" />
-          <HeaderLink
-            label="Nous soutenir"
-            href="/nous-soutenir"
-            className="px-4"
-          />
+        <div className="hidden items-center lg:flex">
           <ButtonLink
             href={status === "authenticated" ? "/groupe" : "/connexion"}
             size="sm"
