@@ -123,7 +123,7 @@ const ContactPage: NextPageWithLayout = () => {
                 id="successAnimationCheck"
                 className="stroke-emerald-500"
                 strokeWidth="2"
-                points="23 34 34 43 47 27"
+                points="23 34 43 47 27"
                 fill="transparent"
               />
             </svg>
@@ -135,10 +135,11 @@ const ContactPage: NextPageWithLayout = () => {
                 Nous vous répondrons dès que possible.
               </p>
             </div>
-            <Link href="/">
-              <a className="mx-auto mt-10 block w-fit text-sm underline">
-                Revenir à l'accueil
-              </a>
+            <Link
+              href="/"
+              className="mx-auto mt-10 block w-fit text-sm underline"
+            >
+              Revenir à l'accueil
             </Link>
           </div>
           <Form

@@ -89,8 +89,8 @@ const BetaInformationPage: NextPageWithLayout = () => {
       </section>
       <p className="text-xl font-bold">Merci de votre patience !</p>
 
-      <Link href="/">
-        <a className="underline">Revenir à l'accueil</a>
+      <Link href="/" className="underline">
+        Revenir à l'accueil
       </Link>
     </div>
   )
