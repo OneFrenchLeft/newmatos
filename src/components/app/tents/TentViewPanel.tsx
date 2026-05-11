@@ -4,7 +4,6 @@ import { useModalContext } from "@/components/hooks/useModalContext"
 import Button from "@/components/ui/Button"
 import type { Tent } from "@/pages/tentes"
 import { downloadImageFromCanvas } from "@/utils/downloadFns"
-import { units } from "@/utils/records"
 import { UIProps } from "@/utils/typedProps"
 import Head from "next/head"
 import { QRCodeCanvas } from "qrcode.react"
@@ -14,16 +13,16 @@ import TentDeletePanel from "./TentDeletePanel"
 import TentUpdatePanel from "./TentUpdatePanel"
 
 const TentViewPanel: FC<UIProps<{ tent: Tent }>> = ({ tent }) => {
-  const { movement, id: groupId } = useGroup()
+  const { id: groupId } = useGroup()
   const {
     id,
     identifyingNum,
     size,
-    unit,
     state,
     type,
     integrated,
     complete,
+    pegs,
     comments,
     updatedAt,
     createdAt,
@@ -84,11 +83,6 @@ const TentViewPanel: FC<UIProps<{ tent: Tent }>> = ({ tent }) => {
 
         <div className="space-y-2">
           <TentCharacteristic
-            type="unit"
-            label="Attribué aux"
-            value={units[movement][unit] || "GROUPE"}
-          />
-          <TentCharacteristic
             type="size"
             label="TAILLE"
             value={`${size} place${size > 1 ? "s" : ""}`}
@@ -111,6 +105,10 @@ const TentViewPanel: FC<UIProps<{ tent: Tent }>> = ({ tent }) => {
           <TentCharacteristic
             label="Tapis de sol"
             value={integrated ? "INTÉGRÉ" : "NORMAL"}
+          />
+          <TentCharacteristic
+            label="Piquets"
+            value={`${pegs ?? 0} piquet${(pegs ?? 0) > 1 ? "s" : ""}`}
           />
           <p className="py-2 italic">
             {comments

@@ -48,6 +48,11 @@ const MobileNavbar = () => {
             <HeaderLink label="Mon groupe" href="/groupe" icon="FaChurch" />
             <HeaderLink label="Mes tentes" href="tentes" icon="FaCampground" />
             <HeaderLink
+              label="Ce qui manque"
+              href="/ce-qui-manque"
+              icon="MdOutlineErrorOutline"
+            />
+            <HeaderLink
               label="FAQ"
               href="/foire-aux-questions"
               target="_blank"

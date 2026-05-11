@@ -46,6 +46,7 @@ const Navbar = () => {
           <nav className="ml-10 hidden items-center gap-6 sm:flex">
             <HeaderLink label="Mon groupe" href="/groupe" />
             <HeaderLink label="Mes tentes" href="/tentes" />
+            <HeaderLink label="Ce qui manque" href="/ce-qui-manque" />
             <HeaderLink label="Tutoriels" href="/tutoriels" target="_blank" />
             <HeaderLink
               label="FAQ"

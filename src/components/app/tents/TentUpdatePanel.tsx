@@ -1,14 +1,12 @@
 import type { Modal } from "@/components/app/modal"
-import { useGroup } from "@/components/hooks/useGroup"
 import { useModalContext } from "@/components/hooks/useModalContext"
 import Button from "@/components/ui/Button"
 import Icon from "@/components/ui/Icon"
 import Textarea from "@/components/ui/Textarea"
 import type { Tent } from "@/pages/tentes"
-import { units } from "@/utils/records"
 import { trpc } from "@/utils/trpc"
 import { UIProps } from "@/utils/typedProps"
-import { State, Unit } from "@prisma/client"
+import { State } from "@prisma/client"
 import Head from "next/head"
 import { FC, FormEvent, useState } from "react"
 import { toast } from "react-hot-toast"
@@ -17,7 +15,6 @@ import { getTentsErrorMessage } from "./tentsErrorMessage"
 import TentViewPanel from "./TentViewPanel"
 
 const TentUpdatePanel: FC<UIProps<{ tent: Tent }>> = ({ tent }) => {
-  const { movement } = useGroup()
   const { setModal } = useModalContext()
   const trpcCtx = trpc.useContext()
   const updateMutation = trpc.tents.update.useMutation({
@@ -29,17 +26,19 @@ const TentUpdatePanel: FC<UIProps<{ tent: Tent }>> = ({ tent }) => {
     },
   })
   const [state, setState] = useState(tent.state)
-  const [unit, setUnit] = useState(tent.unit)
   const [size, setSize] = useState(tent.size)
   const [complete, setComplete] = useState(tent.complete)
   const [integrated, setIntegrated] = useState(tent.integrated)
   const [type, setType] = useState(tent.type)
+  const [pegs, setPegs] = useState(tent.pegs ?? 0)
   const [comments, setComments] = useState(tent.comments || "")
+
   const goBackToViewPanel = () =>
     setModal({
       component: <TentViewPanel tent={tent} />,
       visible: true,
     })
+
   const handleUpdate = (e: FormEvent) => {
     e.preventDefault()
     const updatePromise = updateMutation.mutateAsync({
@@ -48,10 +47,10 @@ const TentUpdatePanel: FC<UIProps<{ tent: Tent }>> = ({ tent }) => {
         identifyingNum: tent.identifyingNum,
         state,
         size,
-        unit,
         complete,
         integrated,
         type,
+        pegs,
         comments,
       },
     })
@@ -87,15 +86,6 @@ const TentUpdatePanel: FC<UIProps<{ tent: Tent }>> = ({ tent }) => {
           <p>Cliquez sur les éléments afin de les modifier</p>
         </div>
         <div className="space-y-2">
-          <TentInput
-            label="Attribué aux"
-            value={unit}
-            setValue={(value) => setUnit(value as Unit)}
-            options={Object.entries(units[movement]).map(([key, value]) => [
-              key as Unit,
-              value,
-            ])}
-          />
           <TentInput
             label="Taille"
             value={size.toString()}
@@ -152,6 +142,15 @@ const TentUpdatePanel: FC<UIProps<{ tent: Tent }>> = ({ tent }) => {
               ["INTÉGRÉ", "INTÉGRÉ"],
               ["NORMAL", "NORMAL"],
             ]}
+          />
+          <TentInput
+            label="Piquets"
+            value={pegs.toString()}
+            setValue={(value) => setPegs(parseInt(value as string))}
+            options={Array.from({ length: 21 }, (_, i) => [
+              i.toString(),
+              i === 0 ? "0 piquet" : `${i} piquet${i > 1 ? "s" : ""}`,
+            ] as [string, string])}
           />
         </div>
         <Textarea

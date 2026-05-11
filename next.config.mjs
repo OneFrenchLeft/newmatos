@@ -15,6 +15,7 @@ function defineNextConfig(config) {
 }
 
 export default defineNextConfig({
+  output: "standalone",
   experimental: { images: { allowFutureImage: true } },
   reactStrictMode: true,
   swcMinify: true,

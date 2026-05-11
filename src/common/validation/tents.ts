@@ -11,18 +11,16 @@ const stateEnum = Object.entries(State).map(([, value]) => value) as [
   ...State[],
 ]
 
-const unit = z.enum(unitsEnum)
-
 const state = z.enum(stateEnum)
 
 export const createTentSchema = z.object({
   identifyingNum: z.number(),
   size: z.number(),
-  unit,
   state,
   type: z.string(),
   complete: z.boolean(),
   integrated: z.boolean(),
+  pegs: z.number().min(0).default(0),
   comments: z.string().optional(),
 })
 

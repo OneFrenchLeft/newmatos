@@ -19,20 +19,22 @@ model Group {
 
 model Tent {
   id                String   @id @default(uuid())
-  identifyingString String   @unique  // Keep this as the unique identifier
+  identifyingNum    Int
+  identifyingString String?  @unique
   size              Int
   unit              Unit     @default(GROUPE)
   state             State
   complete          Boolean  @default(true)
   integrated        Boolean  @default(false)
   type              String   @default("Canadienne")
+  pegs              Int      @default(0)
   comments          String?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
   groupId           String
   group             Group    @relation(fields: [groupId], references: [id])
 
-  @@unique([groupId, identifyingString], name: "TentIdentifier") // Adjust unique constraint
+  @@unique([groupId, identifyingNum], name: "TentIdentifier")
 }
 
 
