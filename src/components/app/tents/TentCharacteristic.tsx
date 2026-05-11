@@ -7,6 +7,23 @@ export type recordableKeyOf<T> = {
   [K in keyof T]: T[K] extends number | symbol | string ? K : never
 }[keyof T]
 
+const stateLabels: Record<string, string> = {
+  INUTILISABLE: "Inutilisable",
+  MAUVAIS: "Mauvais",
+  EN_REPARATION: "En réparation",
+  BON: "Bon",
+  NEUF: "Neuf",
+}
+
+const typeLabels: Record<string, string> = {
+  CANADIENNE: "Canadienne",
+  MARABOUT: "Marabout",
+  QUECHUA: "Quechua",
+  "TENTE INVERSÉE": "Tente inversée",
+  "TENTE INVERSEE": "Tente inversée",
+  TIPI: "Tipi",
+}
+
 interface TentCharacteristicProps<T extends recordableKeyOf<Tent>> {
   type?: T
   label: string
@@ -18,10 +35,14 @@ const TentCharacteristic = <T extends recordableKeyOf<Tent>>({
   label,
   value,
   variants,
+  type,
 }: TentCharacteristicProps<T>) => {
-  // Ensure the name is exactly 3 characters
-  if (typeof value === "string" && value.length !== 3) {
-    console.warn("Tent name must be exactly 3 characters.");
+  // Resolve human-readable display value
+  let displayValue: string = String(value)
+  if (type === "state" && typeof value === "string") {
+    displayValue = stateLabels[value] ?? value
+  } else if (type === "type" && typeof value === "string") {
+    displayValue = typeLabels[value.toUpperCase()] ?? value
   }
 
   const variantClassName = variants
@@ -38,7 +59,7 @@ const TentCharacteristic = <T extends recordableKeyOf<Tent>>({
       <span className="w-[50%] truncate rounded-md rounded-r-none bg-slate-900 px-1 py-2 text-slate-50">
         {label}
       </span>
-      <div className="w-full truncate px-1 py-1 ">{value}</div>
+      <div className="w-full truncate px-1 py-1">{displayValue}</div>
     </div>
   )
 }

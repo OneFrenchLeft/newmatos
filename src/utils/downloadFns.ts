@@ -14,6 +14,13 @@ export const downloadImageFromCanvas = (id: string, filename: string) => {
   document.body.removeChild(downloadLink)
 }
 
+type RepairTask = {
+  id: string
+  description: string
+  assignedTo: string
+  done: boolean
+}
+
 type TentWithMissing = Tent & {
   missingItems?: {
     zip?: boolean
@@ -30,6 +37,7 @@ type TentWithMissing = Tent & {
     returnedAt?: Date | string | null
     note?: string | null
   }>
+  repairTasks?: RepairTask[]
 }
 
 const stateLabels: Record<string, string> = {
@@ -97,8 +105,44 @@ export const downloadExcel = (
     })
 
     const wb = xlsx.utils.book_new()
+
+    // Feuille principale GLOBAL
     const ws = xlsx.utils.json_to_sheet(formatedTents)
     xlsx.utils.book_append_sheet(wb, ws, "GLOBAL")
+
+    // Feuille RÉPARATIONS — une ligne par tâche de réparation
+    const repairTents = tents.filter((t) => t.state === "EN_REPARATION")
+    if (repairTents.length > 0) {
+      const repairRows: Record<string, string | number>[] = []
+      for (const tent of repairTents) {
+        const tasks = tent.repairTasks ?? []
+        if (tasks.length === 0) {
+          repairRows.push({
+            ["Identifiant"]: tent.identifyingLabel ?? "",
+            ["Taille"]: tent.size,
+            ["Type"]: tent.type,
+            ["État"]: stateLabels[tent.state] ?? tent.state,
+            ["Tâche"]: "",
+            ["Statut tâche"]: "",
+            ["Personne en charge"]: "",
+          })
+        } else {
+          for (const task of tasks) {
+            repairRows.push({
+              ["Identifiant"]: tent.identifyingLabel ?? "",
+              ["Taille"]: tent.size,
+              ["Type"]: tent.type,
+              ["État"]: stateLabels[tent.state] ?? tent.state,
+              ["Tâche"]: task.description,
+              ["Statut tâche"]: task.done ? "Effectuée" : "À faire",
+              ["Personne en charge"]: task.assignedTo ?? "",
+            })
+          }
+        }
+      }
+      const wsRepair = xlsx.utils.json_to_sheet(repairRows)
+      xlsx.utils.book_append_sheet(wb, wsRepair, "RÉPARATIONS")
+    }
 
     xlsx.writeFile(wb, "Tentes.xlsx")
   }

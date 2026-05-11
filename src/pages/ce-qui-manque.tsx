@@ -13,30 +13,18 @@ type MissingItems = {
   zip: boolean
   faitiere: boolean
   doubleToit: boolean
-  toile: boolean
-  tapis: boolean
-  sardines: boolean
-  sacTente: boolean
 }
 
 const defaultItems = (): MissingItems => ({
   zip: false,
   faitiere: false,
   doubleToit: false,
-  toile: false,
-  tapis: false,
-  sardines: false,
-  sacTente: false,
 })
 
 const ITEM_LABELS: Record<keyof MissingItems, string> = {
   zip: "Zip",
   faitiere: "Faitière",
   doubleToit: "Double toit",
-  toile: "Toile de tente",
-  tapis: "Tapis de sol",
-  sardines: "Sardines",
-  sacTente: "Sac de tentes",
 }
 
 const CeQuiManquePage: NextPageWithLayout = () => {
@@ -54,16 +42,30 @@ const CeQuiManquePage: NextPageWithLayout = () => {
     }
   }, [tents])
 
-  const toggle = (tent: NonNullable<typeof tents>[number], field: keyof MissingItems) => {
-    // Calcul du nouvel état "manque" basé sur les comments JSON
-    let current: MissingItems
+  const getItems = (tent: NonNullable<typeof tents>[number]): MissingItems => {
     try {
-      current = tent.comments ? JSON.parse(tent.comments) : defaultItems()
-      if (typeof current.zip === "undefined") current = defaultItems()
-    } catch {
-      current = defaultItems()
-    }
+      const parsed = tent.comments ? JSON.parse(tent.comments) : null
+      if (parsed && typeof parsed.zip !== "undefined") {
+        return {
+          zip: !!parsed.zip,
+          faitiere: !!parsed.faitiere,
+          doubleToit: !!parsed.doubleToit,
+        }
+      }
+    } catch { /* ignore */ }
+    return defaultItems()
+  }
+
+  const toggle = (tent: NonNullable<typeof tents>[number], field: keyof MissingItems) => {
+    // Preserve any extra fields already in comments JSON (e.g. old items)
+    let rawParsed: Record<string, unknown> = {}
+    try {
+      rawParsed = tent.comments ? JSON.parse(tent.comments) : {}
+    } catch { /* ignore */ }
+
+    const current = getItems(tent)
     const updated: MissingItems = { ...current, [field]: !current[field] }
+    const merged = { ...rawParsed, ...updated }
     const hasAnyMissing = Object.values(updated).some(Boolean)
 
     updateMutation.mutate({
@@ -76,19 +78,11 @@ const CeQuiManquePage: NextPageWithLayout = () => {
         type: tent.type,
         pegs: tent.pegs ?? 0,
         complete: !hasAnyMissing,
-        comments: JSON.stringify(updated),
+        comments: JSON.stringify(merged),
       },
     }, {
       onError: () => toast.error("Erreur lors de la sauvegarde"),
     })
-  }
-
-  const getItems = (tent: NonNullable<typeof tents>[number]): MissingItems => {
-    try {
-      const parsed = tent.comments ? JSON.parse(tent.comments) : null
-      if (parsed && typeof parsed.zip !== "undefined") return parsed as MissingItems
-    } catch { /* ignore */ }
-    return defaultItems()
   }
 
   const sortedTents = (tents ?? []).slice().sort((a, b) =>
