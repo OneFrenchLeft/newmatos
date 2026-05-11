@@ -14,15 +14,27 @@ export const authOptions: NextAuthOptions = {
       authorize: async (credentials) => {
         const creds = await loginSchema.parseAsync(credentials)
 
-        // Allow login by group name (case-insensitive) OR by group id (for QR link login)
-        const group = await prisma.group.findFirst({
-          where: {
-            OR: [
-              { name: { equals: creds.identifier, mode: "insensitive" } },
-              { id: creds.identifier },
-            ],
-          },
+        // Try login by group id first (QR link login)
+        const groupById = await prisma.group.findFirst({
+          where: { id: creds.identifier },
         })
+
+        if (groupById) {
+          return {
+            id: groupById.id,
+            name: groupById.name,
+            movement: groupById.movement,
+          }
+        }
+
+        // Fallback: case-insensitive name search (compatible with SQLite)
+        const allGroups = await prisma.group.findMany({
+          select: { id: true, name: true, movement: true },
+        })
+
+        const group = allGroups.find(
+          (g) => g.name.toLowerCase() === creds.identifier.toLowerCase()
+        )
 
         if (!group) return null
 
