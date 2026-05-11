@@ -31,14 +31,46 @@ const CHECKLIST_SELECT = {
   missingSacTente:   true,
 } as const
 
+/** Select partagé pour les relations loans/repairTasks */
+const LOAN_SELECT = {
+  id: true,
+  borrower: true,
+  loanedAt: true,
+  returnedAt: true,
+  note: true,
+} as const
+
+const REPAIR_TASK_SELECT = {
+  id: true,
+  description: true,
+  assignedTo: true,
+  done: true,
+  createdAt: true,
+} as const
+
 export const tentsRouter = t.router({
   getAll: authedProcedure.query(async ({ ctx }) => {
     const { session, prisma } = ctx
     return prisma.tent.findMany({
       where: { groupId: session.user.id },
-      include: {
-        loans: { orderBy: { loanedAt: "desc" }, take: 1 },
-        repairTasks: { orderBy: { createdAt: "asc" } },
+      select: {
+        id: true,
+        identifyingLabel: true,
+        size: true,
+        unit: true,
+        state: true,
+        complete: true,
+        integrated: true,
+        type: true,
+        pegs: true,
+        comments: true,
+        inspectionHistory: true,
+        createdAt: true,
+        updatedAt: true,
+        groupId: true,
+        ...CHECKLIST_SELECT,
+        loans: { orderBy: { loanedAt: "desc" }, take: 1, select: LOAN_SELECT },
+        repairTasks: { orderBy: { createdAt: "asc" }, select: REPAIR_TASK_SELECT },
       },
     })
   }),
@@ -47,9 +79,24 @@ export const tentsRouter = t.router({
     const { prisma } = ctx
     return prisma.tent.findUnique({
       where: { id: input },
-      include: {
-        loans: { orderBy: { loanedAt: "desc" }, take: 1 },
-        repairTasks: { orderBy: { createdAt: "asc" } },
+      select: {
+        id: true,
+        identifyingLabel: true,
+        size: true,
+        unit: true,
+        state: true,
+        complete: true,
+        integrated: true,
+        type: true,
+        pegs: true,
+        comments: true,
+        inspectionHistory: true,
+        createdAt: true,
+        updatedAt: true,
+        groupId: true,
+        ...CHECKLIST_SELECT,
+        loans: { orderBy: { loanedAt: "desc" }, take: 1, select: LOAN_SELECT },
+        repairTasks: { orderBy: { createdAt: "asc" }, select: REPAIR_TASK_SELECT },
       },
     })
   }),
@@ -72,13 +119,7 @@ export const tentsRouter = t.router({
         loans: {
           orderBy: { loanedAt: "desc" },
           take: 10,
-          select: {
-            id: true,
-            borrower: true,
-            loanedAt: true,
-            returnedAt: true,
-            note: true,
-          },
+          select: LOAN_SELECT,
         },
         group: { select: { name: true, movement: true } },
       },
