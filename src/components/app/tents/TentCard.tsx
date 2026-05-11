@@ -13,22 +13,24 @@ import TentUpdatePanel from "./TentUpdatePanel"
 import TentViewPanel from "./TentViewPanel"
 
 const MISSING_LABELS: Record<string, string> = {
-  zip: "Zip",
-  faitiere: "Faitière",
-  doubleToit: "Double toit",
-  toile: "Toile",
-  tapis: "Tapis",
-  sardines: "Sardines",
-  sacTente: "Sac",
+  missingZip:        "Zip",
+  missingFaitiere:   "Faitière",
+  missingDoubleToit: "Double toit",
+  missingToile:      "Toile",
+  missingTapis:      "Tapis",
+  missingSardines:   "Sardines",
+  missingSacTente:   "Sac",
 }
 
-function parseMissingItems(comments: string | null | undefined): Record<string, boolean> {
-  if (!comments) return {}
+const MISSING_KEYS = Object.keys(MISSING_LABELS) as (keyof typeof MISSING_LABELS)[]
+
+function parseInspectionHistory(raw: string | null | undefined): string[] {
+  if (!raw) return []
   try {
-    const parsed = JSON.parse(comments)
-    if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) return parsed as Record<string, boolean>
-  } catch { /* not JSON */ }
-  return {}
+    const parsed = JSON.parse(raw)
+    if (Array.isArray(parsed)) return parsed as string[]
+  } catch { /* ignore */ }
+  return []
 }
 
 const TentCard: FC<UIProps<{ tent: Tent }>> = ({ tent }) => {
@@ -57,8 +59,14 @@ const TentCard: FC<UIProps<{ tent: Tent }>> = ({ tent }) => {
   const isProblematic = !complete || state === "EN_REPARATION"
   const circleBorder = isProblematic ? "border-red-500" : "border-slate-800"
 
-  const missingItems = parseMissingItems(tent.comments)
-  const missingKeys = Object.entries(missingItems).filter(([, v]) => v).map(([k]) => k)
+  // Éléments manquants depuis les booléens dédiés
+  const missingKeys = MISSING_KEYS.filter((k) => (tent as unknown as Record<string, unknown>)[k] === true)
+
+  // Dernier contrôle
+  const inspections = parseInspectionHistory((tent as unknown as Record<string, unknown>).inspectionHistory as string | null)
+  const lastInspection = inspections.length > 0
+    ? new Date(inspections[inspections.length - 1] as string).toLocaleDateString("fr-FR")
+    : null
 
   return (
     <Card className={classNames("cursor-pointer", isProblematic && "ring-1 ring-red-300")} onClick={openViewPanel}>
@@ -71,9 +79,15 @@ const TentCard: FC<UIProps<{ tent: Tent }>> = ({ tent }) => {
           </div>
           <div className="text-left space-y-1">
             <p className="text-sm font-semibold">{String(size)} place{size > 1 ? "s" : ""}</p>
-            {size < 6 && <p className="text-xs text-slate-500">{integrated ? "Integrée" : "Non intégrée"}</p>}
+            {size < 6 && <p className="text-xs text-slate-500">{integrated ? "Intégrée" : "Non intégrée"}</p>}
             {!complete && <p className="text-xs font-semibold text-red-500">Incomplète</p>}
             {state === "EN_REPARATION" && <p className="text-xs font-semibold text-red-500">En réparation</p>}
+            {/* Dernier contrôle */}
+            {lastInspection ? (
+              <p className="text-xs text-emerald-600 font-medium">🗓️ Contrôle : {lastInspection}</p>
+            ) : (
+              <p className="text-xs text-slate-400">Jamais contrôlée</p>
+            )}
           </div>
         </div>
 
@@ -82,7 +96,7 @@ const TentCard: FC<UIProps<{ tent: Tent }>> = ({ tent }) => {
           <div className="flex flex-wrap gap-1">
             {missingKeys.map((k) => (
               <span key={k} className="rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-semibold text-red-600">
-                {MISSING_LABELS[k] ?? k}
+                {MISSING_LABELS[k]}
               </span>
             ))}
           </div>

@@ -11,13 +11,13 @@ const repairTaskSchema = z.object({
 })
 
 const checklistSchema = z.object({
-  zip: z.boolean(),
-  faitiere: z.boolean(),
-  doubleToit: z.boolean(),
-  toile: z.boolean(),
-  tapis: z.boolean(),
-  sardines: z.boolean(),
-  sacTente: z.boolean(),
+  missingZip:        z.boolean(),
+  missingFaitiere:   z.boolean(),
+  missingDoubleToit: z.boolean(),
+  missingToile:      z.boolean(),
+  missingTapis:      z.boolean(),
+  missingSardines:   z.boolean(),
+  missingSacTente:   z.boolean(),
 })
 
 export const tentsRouter = t.router({
@@ -77,7 +77,6 @@ export const tentsRouter = t.router({
       } catch (error) { handleError(error) }
     }),
 
-  // Mutation publique pour signaler un problème (passe la tente en EN_REPARATION)
   reportProblem: t.procedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
@@ -90,15 +89,29 @@ export const tentsRouter = t.router({
       } catch (error) { handleError(error) }
     }),
 
-  // Mutation publique pour synchroniser la checklist des éléments manquants
+  // Met à jour les booléens d'éléments manquants + complete
   updateChecklist: t.procedure
     .input(z.object({ id: z.string(), checklist: checklistSchema }))
+    .mutation(async ({ ctx, input }) => {
+      const { prisma } = ctx
+      const hasAnyMissing = Object.values(input.checklist).some(Boolean)
+      try {
+        return await prisma.tent.update({
+          where: { id: input.id },
+          data: { ...input.checklist, complete: !hasAnyMissing },
+        })
+      } catch (error) { handleError(error) }
+    }),
+
+  // Met à jour l'historique de contrôle (tableau de dates ISO, max conservé côté client)
+  updateInspectionHistory: t.procedure
+    .input(z.object({ id: z.string(), dates: z.array(z.string()) }))
     .mutation(async ({ ctx, input }) => {
       const { prisma } = ctx
       try {
         return await prisma.tent.update({
           where: { id: input.id },
-          data: { comments: JSON.stringify(input.checklist) },
+          data: { inspectionHistory: JSON.stringify(input.dates) },
         })
       } catch (error) { handleError(error) }
     }),
@@ -111,7 +124,6 @@ export const tentsRouter = t.router({
     } catch (error) { handleError(error) }
   }),
 
-  // Repair tasks
   addRepairTask: authedProcedure
     .input(z.object({ tentId: z.string(), task: repairTaskSchema }))
     .mutation(async ({ ctx, input }) => {

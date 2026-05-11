@@ -18,22 +18,32 @@ model Group {
 }
 
 model Tent {
-  id               String       @id @default(uuid())
-  identifyingLabel String
-  size             Int
-  unit             Unit         @default(GROUPE)
-  state            State
-  complete         Boolean      @default(true)
-  integrated       Boolean      @default(false)
-  type             String       @default("Canadienne")
-  pegs             Int          @default(0)
-  comments         String?      @db.Text
-  createdAt        DateTime     @default(now())
-  updatedAt        DateTime     @updatedAt
-  groupId          String
-  group            Group        @relation(fields: [groupId], references: [id])
-  loans            TentLoan[]
-  repairTasks      RepairTask[]
+  id                  String       @id @default(uuid())
+  identifyingLabel    String
+  size                Int
+  unit                Unit         @default(GROUPE)
+  state               State
+  complete            Boolean      @default(true)
+  integrated          Boolean      @default(false)
+  type                String       @default("Canadienne")
+  pegs                Int          @default(0)
+  comments            String?      @db.Text
+  // Éléments manquants — un booléen par pièce
+  missingZip          Boolean      @default(false)
+  missingFaitiere     Boolean      @default(false)
+  missingDoubleToit   Boolean      @default(false)
+  missingToile        Boolean      @default(false)
+  missingTapis        Boolean      @default(false)
+  missingSardines     Boolean      @default(false)
+  missingSacTente     Boolean      @default(false)
+  // Historique de contrôle (JSON : string[] de dates ISO)
+  inspectionHistory   String?      @db.Text
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+  groupId             String
+  group               Group        @relation(fields: [groupId], references: [id])
+  loans               TentLoan[]
+  repairTasks         RepairTask[]
 
   @@unique([groupId, identifyingLabel], name: "TentIdentifier")
 }
