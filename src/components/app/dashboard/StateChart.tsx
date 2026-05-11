@@ -8,8 +8,17 @@ import { FC } from "react"
 export const stateColors: Record<State, string> = {
   INUTILISABLE: "bg-red-500/90",
   MAUVAIS: "bg-orange-400/90",
+  EN_REPARATION: "bg-yellow-400/90",
   BON: "bg-lime-500/90",
   NEUF: "bg-green-500/90",
+}
+
+export const stateLabels: Record<State, string> = {
+  INUTILISABLE: "Inutilisable",
+  MAUVAIS: "Mauvais",
+  EN_REPARATION: "En réparation",
+  BON: "Bon",
+  NEUF: "Neuf",
 }
 
 const Bar: FC<UIProps<{ state: State; count: number; total: number }>> = ({
@@ -18,7 +27,7 @@ const Bar: FC<UIProps<{ state: State; count: number; total: number }>> = ({
   total,
 }) => {
   return (
-    <div className="flex basis-1/4 flex-col-reverse items-center font-bold text-slate-900 sm:w-16">
+    <div className="flex basis-1/5 flex-col-reverse items-center font-bold text-slate-900 sm:w-16">
       <div className="flex h-8 w-full items-center justify-center">
         <span className="text-lg">{count}</span>
       </div>
@@ -34,13 +43,13 @@ const StateChart: FC<UIProps<{ tents: Tent[]; className?: string }>> = ({
   tents,
 }) => {
   const countOf = (state: State) => {
-    return tents.filter((tents) => tents.state === state).length
+    return tents.filter((t) => t.state === state).length
   }
   const average =
     Object.values(State)
       .map((value, index) => countOf(value) * index)
       .reduce((acc, curr) => acc + curr) / tents.length || 0
-  const note = (average * 20) / 3
+  const note = (average * 20) / 4
 
   return (
     <Card className="max-w-full">
@@ -53,34 +62,20 @@ const StateChart: FC<UIProps<{ tents: Tent[]; className?: string }>> = ({
       <div className="flex w-full flex-col items-center justify-around gap-8 rounded-xl md:flex-row md:items-end">
         <div className="flex w-full flex-col items-end gap-4 sm:w-fit lg:h-[300px] lg:flex-row lg:gap-0">
           <div className="mr-4 space-y-1 self-start py-3">
-            {Object.entries(State)
-              .map(([, value]) => {
-                return (
-                  <div key={value} className="flex items-center space-x-2">
-                    <div
-                      className={classNames(
-                        "h-5 w-5 rounded-sm",
-                        stateColors[value],
-                      )}
-                    />
-                    <span className="text-xs">{value}</span>
-                  </div>
-                )
-              })
+            {(Object.entries(State) as [State, State][])
+              .map(([, value]) => (
+                <div key={value} className="flex items-center space-x-2">
+                  <div className={classNames("h-5 w-5 rounded-sm", stateColors[value])} />
+                  <span className="text-xs">{stateLabels[value]}</span>
+                </div>
+              ))
               .reverse()}
           </div>
           <div className="mx-auto flex w-full items-end space-x-3">
-            {Object.entries(State)
-              .map(([, value]) => {
-                return (
-                  <Bar
-                    state={value}
-                    count={countOf(value)}
-                    total={tents.length}
-                    key={value}
-                  />
-                )
-              })
+            {(Object.entries(State) as [State, State][])
+              .map(([, value]) => (
+                <Bar state={value} count={countOf(value)} total={tents.length} key={value} />
+              ))
               .reverse()}
           </div>
         </div>
@@ -101,28 +96,8 @@ const StateChart: FC<UIProps<{ tents: Tent[]; className?: string }>> = ({
             <Icon name="FaGraduationCap" />
             <span>Moyenne</span>
           </h3>
-          <div
-            className={classNames(
-              "space-y-4 whitespace-nowrap text-center text-5xl font-bold",
-              {
-                "text-red-800": note < 4,
-                "text-red-500": note >= 4,
-                "text-orange-500": note >= 8,
-                "text-yellow-500": note >= 10,
-                "text-lime-500": note >= 14,
-                "text-emerald-500": note >= 18,
-                "animate-pulse": note < 8,
-              },
-            )}
-          >
-            <div>
-              {average.toFixed(1)} <span className="text-slate-900">/ 3</span>
-            </div>
-            <div className="text-2xl text-slate-900">ou</div>
-            <div>
-              {note.toFixed(1)} <span className="text-slate-900">/ 20</span>
-            </div>
-          </div>
+          <p className="text-5xl font-bold">{note.toFixed(1)}</p>
+          <p className="text-sm text-slate-500">/20</p>
         </div>
       </div>
     </Card>

@@ -14,6 +14,14 @@ import { toast } from "react-hot-toast"
 import TentInput from "./TentInput"
 import { getTentsErrorMessage } from "./tentsErrorMessage"
 
+const stateLabels: Record<State, string> = {
+  INUTILISABLE: "Inutilisable",
+  MAUVAIS: "Mauvais",
+  EN_REPARATION: "En réparation",
+  BON: "Bon",
+  NEUF: "Neuf",
+}
+
 const TentAddPanel: FC<UIProps<{ tents: Tents }>> = ({ tents }) => {
   const { setModal } = useModalContext()
   const trpcCtx = trpc.useContext()
@@ -40,7 +48,7 @@ const TentAddPanel: FC<UIProps<{ tents: Tents }>> = ({ tents }) => {
   const [complete, setComplete] = useState(true)
   const [integrated, setIntegrated] = useState(false)
   const [type, setType] = useState("CANADIENNE")
-  const [pegs, setPegs] = useState(0)
+  const [pegs, setPegs] = useState<number | "">("")
   const [comments, setComments] = useState("")
 
   const closePanel = () => setModal({} as Modal)
@@ -60,7 +68,7 @@ const TentAddPanel: FC<UIProps<{ tents: Tents }>> = ({ tents }) => {
       complete,
       integrated,
       type,
-      pegs,
+      pegs: pegs === "" ? 0 : pegs,
       comments,
     })
     try {
@@ -129,11 +137,23 @@ const TentAddPanel: FC<UIProps<{ tents: Tents }>> = ({ tents }) => {
 
         <div className="space-y-2">
           <TentInput label="Taille" value={size.toString()} setValue={(v) => setSize(parseInt(v as string))} options={[["0","N'accueille pas de personne"],["1","1 place"],["2","2 places"],["3","3 places"],["4","4 places"],["5","5 places"],["6","6 places"],["8","8 places"]]} />
-          <TentInput label="ÉTAT" value={state} setValue={(v) => setState(v as State)} options={Object.entries(State).map(([k, v]) => [k as State, v])} />
+          <TentInput label="ÉTAT" value={state} setValue={(v) => setState(v as State)} options={Object.entries(stateLabels).map(([k, v]) => [k, v] as [string, string])} />
           <TentInput label="Complète ?" value={complete ? "OUI" : "NON"} setValue={(v) => setComplete(v === "OUI")} options={[["OUI","OUI"],["NON","NON"]]} />
           <TentInput label="TYPE" value={type} setValue={setType} options={[["CANADIENNE","CANADIENNE"],["QUECHUA","QUECHUA"],["MARABOUT","MARABOUT"]]} />
           <TentInput label="Tapis de sol" value={integrated ? "INTÉGRÉ" : "NORMAL"} setValue={(v) => setIntegrated(v === "INTÉGRÉ")} options={[["INTÉGRÉ","INTÉGRÉ"],["NORMAL","NORMAL"]]} />
-          <TentInput label="Piquets" value={pegs.toString()} setValue={(v) => setPegs(parseInt(v as string))} options={Array.from({ length: 21 }, (_, i) => [i.toString(), i === 0 ? "0 piquet" : `${i} piquet${i > 1 ? "s" : ""}`] as [string, string])} />
+          {/* Sardines — champ libre */}
+          <div className="flex items-center justify-between rounded-lg border border-slate-200 p-3">
+            <span className="font-medium text-slate-700">Sardines</span>
+            <input
+              type="number"
+              min={0}
+              max={100}
+              placeholder="Nombre"
+              value={pegs === "" ? "" : pegs}
+              onChange={(e) => setPegs(e.target.value === "" ? "" : parseInt(e.target.value))}
+              className="w-24 rounded-md border border-slate-200 p-2 text-center text-sm outline-none focus:border-blue-400"
+            />
+          </div>
         </div>
 
         <Textarea label="Commentaires" value={comments} onChange={(e) => setComments(e.target.value)} />

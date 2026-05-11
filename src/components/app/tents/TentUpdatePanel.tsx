@@ -14,6 +14,14 @@ import TentInput from "./TentInput"
 import { getTentsErrorMessage } from "./tentsErrorMessage"
 import TentViewPanel from "./TentViewPanel"
 
+const stateLabels: Record<State, string> = {
+  INUTILISABLE: "Inutilisable",
+  MAUVAIS: "Mauvais",
+  EN_REPARATION: "En réparation",
+  BON: "Bon",
+  NEUF: "Neuf",
+}
+
 const TentUpdatePanel: FC<UIProps<{ tent: Tent }>> = ({ tent }) => {
   const { setModal } = useModalContext()
   const trpcCtx = trpc.useContext()
@@ -32,7 +40,7 @@ const TentUpdatePanel: FC<UIProps<{ tent: Tent }>> = ({ tent }) => {
   const [complete, setComplete] = useState(tent.complete)
   const [integrated, setIntegrated] = useState(tent.integrated)
   const [type, setType] = useState(tent.type)
-  const [pegs, setPegs] = useState(tent.pegs ?? 0)
+  const [pegs, setPegs] = useState<number | "">(tent.pegs ?? "")
   const [comments, setComments] = useState(tent.comments || "")
 
   const goBackToViewPanel = () =>
@@ -49,7 +57,7 @@ const TentUpdatePanel: FC<UIProps<{ tent: Tent }>> = ({ tent }) => {
         complete,
         integrated,
         type,
-        pegs,
+        pegs: pegs === "" ? 0 : pegs,
         comments,
       },
     })
@@ -87,17 +95,29 @@ const TentUpdatePanel: FC<UIProps<{ tent: Tent }>> = ({ tent }) => {
         </div>
         <div className="space-y-2">
           <TentInput label="Taille" value={size.toString()} setValue={(v) => setSize(parseInt(v as string))} options={[["1","1 place"],["2","2 places"],["3","3 places"],["4","4 places"],["5","5 places"],["6","6 places"],["7","7 places"],["8","8 places"]]} />
-          <TentInput label="ÉTAT" value={state} setValue={(v) => setState(v as State)} options={Object.entries(State).map(([k, v]) => [k as State, v])} />
+          <TentInput label="ÉTAT" value={state} setValue={(v) => setState(v as State)} options={Object.entries(stateLabels).map(([k, v]) => [k, v] as [string, string])} />
           <TentInput label="Complète ?" value={complete ? "OUI" : "NON"} setValue={(v) => setComplete(v === "OUI")} options={[["OUI","OUI"],["NON","NON"]]} />
           <TentInput label="TYPE" value={type.toUpperCase()} setValue={setType} options={[["CANADIENNE","CANADIENNE"],["QUECHUA","QUECHUA"],["MARABOUT","MARABOUT"]]} />
           <TentInput label="Tapis de sol" value={integrated ? "INTÉGRÉ" : "NORMAL"} setValue={(v) => setIntegrated(v === "INTÉGRÉ")} options={[["INTÉGRÉ","INTÉGRÉ"],["NORMAL","NORMAL"]]} />
-          <TentInput label="Piquets" value={pegs.toString()} setValue={(v) => setPegs(parseInt(v as string))} options={Array.from({ length: 21 }, (_, i) => [i.toString(), i === 0 ? "0 piquet" : `${i} piquet${i > 1 ? "s" : ""}`] as [string, string])} />
+          {/* Sardines — champ libre */}
+          <div className="flex items-center justify-between rounded-lg border border-slate-200 p-3">
+            <span className="font-medium text-slate-700">Sardines</span>
+            <input
+              type="number"
+              min={0}
+              max={100}
+              placeholder="Nombre"
+              value={pegs === "" ? "" : pegs}
+              onChange={(e) => setPegs(e.target.value === "" ? "" : parseInt(e.target.value))}
+              className="w-24 rounded-md border border-slate-200 p-2 text-center text-sm outline-none focus:border-blue-400"
+            />
+          </div>
         </div>
-        <Textarea value={comments} onChange={(e) => setComments(e.target.value)} label="Commentaires" />
+        <Textarea label="Commentaires" value={comments} onChange={(e) => setComments(e.target.value)} />
         <div className="flex flex-wrap items-center justify-center gap-8">
-          <Button type="button" onClick={goBackToViewPanel} size="sm" icon="HiArrowLeft" variant="white" className="max-w-fit">Annuler</Button>
-          <Button type="submit" size="sm" icon="RiSave2Fill" className="max-w-fit" disabled={updateMutation.isLoading}>
-            {updateMutation.isLoading ? "Modification ..." : "Modifier"}
+          <Button type="button" onClick={goBackToViewPanel} size="sm" icon="HiArrowLeft" variant="white" className="max-w-fit">Retour</Button>
+          <Button type="submit" disabled={updateMutation.isLoading} size="sm" icon="RiSave2Fill" className="max-w-fit">
+            {updateMutation.isLoading ? "Sauvegarde ..." : "Sauvegarder"}
           </Button>
         </div>
       </form>

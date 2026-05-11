@@ -18,21 +18,20 @@ model Group {
 }
 
 model Tent {
-  id             String     @id @default(uuid())
-  // identifyingLabel can be a number string ("1", "42") or a name ("Bourgogne")
+  id               String     @id @default(uuid())
   identifyingLabel String
   size             Int
-  unit             Unit      @default(GROUPE)
+  unit             Unit       @default(GROUPE)
   state            State
-  complete         Boolean   @default(true)
-  integrated       Boolean   @default(false)
-  type             String    @default("Canadienne")
-  pegs             Int       @default(0)
+  complete         Boolean    @default(true)
+  integrated       Boolean    @default(false)
+  type             String     @default("Canadienne")
+  pegs             Int        @default(0)
   comments         String?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
   groupId          String
-  group            Group     @relation(fields: [groupId], references: [id])
+  group            Group      @relation(fields: [groupId], references: [id])
   loans            TentLoan[]
 
   @@unique([groupId, identifyingLabel], name: "TentIdentifier")
@@ -68,6 +67,7 @@ enum Unit {
 enum State {
   INUTILISABLE
   MAUVAIS
+  EN_REPARATION
   BON
   NEUF
 }

@@ -5,6 +5,7 @@ import type { Tent } from "@/pages/tentes"
 import { trpc } from "@/utils/trpc"
 import { UIProps } from "@/utils/typedProps"
 import Head from "next/head"
+import Link from "next/link"
 import { FC, useState } from "react"
 import { toast } from "react-hot-toast"
 import TentCharacteristic from "./TentCharacteristic"
@@ -84,6 +85,12 @@ const TentViewPanel: FC<UIProps<{ tent: Tent }>> = ({ tent }) => {
 
         <div className="flex flex-wrap items-center justify-center gap-2 pt-4">
           <Button type="button" onClick={goToUpdatePanel} size="sm" icon="HiPencil" className="max-w-fit">Modifier</Button>
+          <Link
+            href={`/ce-qui-manque?t=${id}`}
+            className="inline-flex items-center gap-2 rounded-md border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+          >
+            📋 Ce qui manque
+          </Link>
           <a
             href={publicUrl}
             target="_blank"
@@ -109,7 +116,7 @@ const TentViewPanel: FC<UIProps<{ tent: Tent }>> = ({ tent }) => {
           <TentCharacteristic label="Complète ?" value={complete ? "OUI" : "NON"} />
           <TentCharacteristic type="type" label="TYPE" value={type.toUpperCase()} />
           <TentCharacteristic label="Tapis de sol" value={integrated ? "INTÉGRÉ" : "NORMAL"} />
-          <TentCharacteristic label="Piquets" value={`${pegs ?? 0} piquet${(pegs ?? 0) > 1 ? "s" : ""}`} />
+          <TentCharacteristic label="Sardines" value={`${pegs ?? 0} sardine${(pegs ?? 0) > 1 ? "s" : ""}`} />
           {activeLoan && (
             <TentCharacteristic label="Emprunté par" value={unitLabels[activeLoan.borrower] ?? activeLoan.borrower} />
           )}

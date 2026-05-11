@@ -1,24 +1,53 @@
 import AppLayout from "@/components/app/Layout"
+import { stateColors, stateLabels } from "@/components/app/dashboard/StateChart"
 import { trpc } from "@/utils/trpc"
 import { sortTentLabel } from "@/utils/tentSort"
+import classNames from "classnames"
 import Head from "next/head"
-import { ReactElement, useEffect, useState } from "react"
+import { useRouter } from "next/router"
+import { ReactElement, useEffect, useRef, useState } from "react"
 import { NextPageWithLayout } from "./_app"
 
 type MissingItems = {
   zip: boolean
   faitiere: boolean
   doubleToit: boolean
+  toile: boolean
+  tapis: boolean
+  sardines: boolean
+  sacTente: boolean
 }
 
 type MissingState = Record<string, MissingItems>
 
-const defaultItems = (): MissingItems => ({ zip: false, faitiere: false, doubleToit: false })
+const defaultItems = (): MissingItems => ({
+  zip: false,
+  faitiere: false,
+  doubleToit: false,
+  toile: false,
+  tapis: false,
+  sardines: false,
+  sacTente: false,
+})
+
 const STORAGE_KEY = "ce-qui-manque"
 
+const ITEM_LABELS: Record<keyof MissingItems, string> = {
+  zip: "Zip",
+  faitiere: "Faitière",
+  doubleToit: "Double toit",
+  toile: "Toile de tente",
+  tapis: "Tapis de sol",
+  sardines: "Sardines",
+  sacTente: "Sac de tentes",
+}
+
 const CeQuiManquePage: NextPageWithLayout = () => {
+  const router = useRouter()
   const { data: tents, isLoading } = trpc.tents.getAll.useQuery()
   const [missing, setMissing] = useState<MissingState>({})
+  const highlightId = (router.query.t as string) || null
+  const highlightRef = useRef<HTMLTableRowElement | null>(null)
 
   useEffect(() => {
     try {
@@ -31,6 +60,13 @@ const CeQuiManquePage: NextPageWithLayout = () => {
     try { sessionStorage.setItem(STORAGE_KEY, JSON.stringify(missing)) }
     catch { /* ignore */ }
   }, [missing])
+
+  // Scroll to highlighted tent on load
+  useEffect(() => {
+    if (highlightRef.current) {
+      highlightRef.current.scrollIntoView({ behavior: "smooth", block: "center" })
+    }
+  }, [tents])
 
   const toggle = (tentId: string, field: keyof MissingItems) => {
     setMissing((prev) => ({
@@ -47,7 +83,7 @@ const CeQuiManquePage: NextPageWithLayout = () => {
 
   const missingCount = sortedTents.filter((tent) => {
     const items = getItems(tent.id)
-    return items.zip || items.faitiere || items.doubleToit
+    return Object.values(items).some(Boolean)
   }).length
 
   return (
@@ -87,17 +123,27 @@ const CeQuiManquePage: NextPageWithLayout = () => {
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
                   <th className="px-4 py-3">Tente</th>
-                  <th className="px-4 py-3 text-center">Zip</th>
-                  <th className="px-4 py-3 text-center">Faitière</th>
-                  <th className="px-4 py-3 text-center">Double toit</th>
+                  <th className="px-4 py-3 text-center">État</th>
+                  {(Object.keys(ITEM_LABELS) as (keyof MissingItems)[]).map((key) => (
+                    <th key={key} className="px-3 py-3 text-center">{ITEM_LABELS[key]}</th>
+                  ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {sortedTents.map((tent) => {
                   const items = getItems(tent.id)
-                  const hasIssue = items.zip || items.faitiere || items.doubleToit
+                  const hasIssue = Object.values(items).some(Boolean)
+                  const isHighlighted = tent.id === highlightId
                   return (
-                    <tr key={tent.id} className={`transition-colors hover:bg-slate-50 ${hasIssue ? "bg-red-50/50" : ""}`}>
+                    <tr
+                      key={tent.id}
+                      ref={isHighlighted ? highlightRef : null}
+                      className={classNames(
+                        "transition-colors hover:bg-slate-50",
+                        hasIssue ? "bg-red-50/50" : "",
+                        isHighlighted ? "ring-2 ring-inset ring-emerald-400" : ""
+                      )}
+                    >
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
                           <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full border-2 border-slate-700 text-xs font-bold">
@@ -110,20 +156,25 @@ const CeQuiManquePage: NextPageWithLayout = () => {
                         </div>
                       </td>
                       <td className="px-4 py-3 text-center">
-                        <label className="inline-flex cursor-pointer items-center justify-center">
-                          <input type="checkbox" checked={items.zip} onChange={() => toggle(tent.id, "zip")} className="h-5 w-5 cursor-pointer accent-red-500" aria-label={`Zip manquant pour tente ${tent.identifyingLabel}`} />
-                        </label>
+                        <span className={classNames(
+                          "inline-block rounded-full px-2 py-0.5 text-xs font-semibold text-white",
+                          stateColors[tent.state]
+                        )}>
+                          {stateLabels[tent.state]}
+                        </span>
                       </td>
-                      <td className="px-4 py-3 text-center">
-                        <label className="inline-flex cursor-pointer items-center justify-center">
-                          <input type="checkbox" checked={items.faitiere} onChange={() => toggle(tent.id, "faitiere")} className="h-5 w-5 cursor-pointer accent-red-500" aria-label={`Faitière manquante pour tente ${tent.identifyingLabel}`} />
-                        </label>
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <label className="inline-flex cursor-pointer items-center justify-center">
-                          <input type="checkbox" checked={items.doubleToit} onChange={() => toggle(tent.id, "doubleToit")} className="h-5 w-5 cursor-pointer accent-red-500" aria-label={`Double toit manquant pour tente ${tent.identifyingLabel}`} />
-                        </label>
-                      </td>
+                      {(Object.keys(ITEM_LABELS) as (keyof MissingItems)[]).map((field) => (
+                        <td key={field} className="px-3 py-3 text-center">
+                          <label className="inline-flex cursor-pointer items-center justify-center">
+                            <input
+                              type="checkbox"
+                              checked={items[field]}
+                              onChange={() => toggle(tent.id, field)}
+                              className="h-5 w-5 cursor-pointer accent-red-500"
+                            />
+                          </label>
+                        </td>
+                      ))}
                     </tr>
                   )
                 })}
