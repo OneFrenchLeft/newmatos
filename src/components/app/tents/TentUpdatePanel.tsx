@@ -124,7 +124,7 @@ const TentUpdatePanel: FC<UIProps<{ tent: Tent }>> = ({ tent }) => {
         </div>
         <div className="space-y-2">
           <TentInput label="Taille" value={size} setValue={(v) => setSize(v as string)} options={SIZE_OPTIONS} />
-          <TentInput label="état" value={state} setValue={(v) => setState(v as State)} options={Object.entries(stateLabels).map(([k, v]) => [k, v] as [string, string])} />
+          <TentInput label="État" value={state} setValue={(v) => setState(v as State)} options={Object.entries(stateLabels).map(([k, v]) => [k, v] as [string, string])} />
           <TentInput label="Complète ?" value={complete ? "Oui" : "Non"} setValue={(v) => setComplete(v === "Oui")} options={[["Oui","Oui"],["Non","Non"]]} />
           <TentInput label="Type" value={type} setValue={(v) => setType(v as string)} options={TYPE_OPTIONS} />
           <TentInput label="Tapis de sol" value={integrated ? "Intégré" : "Non intégré"} setValue={(v) => setIntegrated(v === "Intégré")} options={[["Intégré","Intégré"],["Non intégré","Non intégré"]]} />
