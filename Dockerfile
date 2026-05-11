@@ -1,4 +1,4 @@
-# ─── Stage 1: deps ──────────────────────────────────────────────────────────
+# --- Stage 1: deps -----------------------------------------------------------
 FROM node:22-alpine AS deps
 RUN apk add --no-cache libc6-compat openssl
 WORKDIR /app
@@ -6,10 +6,10 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 COPY prisma ./prisma/
 
-RUN npm ci
+RUN npm install
 RUN npx prisma generate
 
-# ─── Stage 2: builder ───────────────────────────────────────────────────────
+# --- Stage 2: builder ---------------------------------------------------------
 FROM node:22-alpine AS builder
 RUN apk add --no-cache libc6-compat openssl
 WORKDIR /app
@@ -19,16 +19,17 @@ COPY . .
 
 # Dummy env vars so Next.js build-time validation doesn't fail
 ENV DATABASE_URL="mysql://user:pass@localhost:3306/monmatos"
-ENV NEXTAUTH_SECRET="build-time-secret"
 ENV NEXTAUTH_URL="http://localhost:3000"
 ENV NEXT_PUBLIC_URL="http://localhost:3000"
 ENV NEXT_PUBLIC_APP_URL="http://localhost:3000"
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
+ARG NEXTAUTH_SECRET=build-time-secret
+ENV NEXTAUTH_SECRET=$NEXTAUTH_SECRET
 
 RUN npm run build
 
-# ─── Stage 3: runner ────────────────────────────────────────────────────────
+# --- Stage 3: runner ----------------------------------------------------------
 FROM node:22-alpine AS runner
 RUN apk add --no-cache libc6-compat openssl
 WORKDIR /app
@@ -57,5 +58,4 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-# Push DB schema then start the standalone server
 CMD ["sh", "-c", "node_modules/prisma/build/index.js db push --skip-generate && node server.js"]
