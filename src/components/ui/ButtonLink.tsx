@@ -32,24 +32,25 @@ const ButtonLink: FC<
   const iconMarginClassName = children ? iconMargins[size][iconPosition] : ""
 
   return (
-    <Link href={href} passHref={passHref} as={asUrl}>
-      <a
-        className={classNames(
-          "flex w-full items-center justify-center rounded-xl border shadow-lg transition hover:scale-[0.98] hover:shadow-sm disabled:opacity-50 disabled:shadow-lg disabled:hover:scale-100",
-          buttonVariants[variant],
-          buttonSizes[size],
-          className,
-        )}
-        {...otherProps}
-      >
-        {!icon ? null : iconPosition === "right" ? null : (
-          <Icon name={icon} className={iconMarginClassName} />
-        )}
-        <span className="truncate">{children}</span>
-        {!icon ? null : iconPosition === "left" ? null : (
-          <Icon name={icon} className={iconMarginClassName} />
-        )}
-      </a>
+    <Link
+      href={href}
+      passHref={passHref}
+      as={asUrl}
+      className={classNames(
+        "flex w-full items-center justify-center rounded-xl border shadow-lg transition hover:scale-[0.98] hover:shadow-sm disabled:opacity-50 disabled:shadow-lg disabled:hover:scale-100",
+        buttonVariants[variant],
+        buttonSizes[size],
+        className,
+      )}
+      {...otherProps}
+    >
+      {!icon ? null : iconPosition === "right" ? null : (
+        <Icon name={icon} className={iconMarginClassName} />
+      )}
+      <span className="truncate">{children}</span>
+      {!icon ? null : iconPosition === "left" ? null : (
+        <Icon name={icon} className={iconMarginClassName} />
+      )}
     </Link>
   )
 }
