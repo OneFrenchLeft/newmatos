@@ -25,6 +25,25 @@ const unitLabels: Record<string, string> = {
   GROUPE: "Groupe",
 }
 
+const MISSING_LABELS: Record<string, string> = {
+  zip: "Zip",
+  faitiere: "Faitière",
+  doubleToit: "Double toit",
+  toile: "Toile de tente",
+  tapis: "Tapis de sol",
+  sardines: "Sardines",
+  sacTente: "Sac de tentes",
+}
+
+function parseMissingItems(comments: string | null | undefined): Record<string, boolean> {
+  if (!comments) return {}
+  try {
+    const parsed = JSON.parse(comments)
+    if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) return parsed as Record<string, boolean>
+  } catch { /* not JSON */ }
+  return {}
+}
+
 const TentViewPanel: FC<UIProps<{ tent: Tent }>> = ({ tent }) => {
   const { setModal } = useModalContext()
   const { data: loans, refetch: refetchLoans } = trpc.loans.getByTent.useQuery(tent.id)
@@ -48,40 +67,53 @@ const TentViewPanel: FC<UIProps<{ tent: Tent }>> = ({ tent }) => {
   const [selectedUnit, setSelectedUnit] = useState("")
   const [note, setNote] = useState("")
 
-  const {
-    id,
-    identifyingLabel,
-    size,
-    state,
-    type,
-    integrated,
-    complete,
-    pegs,
-    comments,
-    updatedAt,
-    createdAt,
-  } = tent
+  const { id, identifyingLabel, size, state, type, integrated, complete, pegs, comments, updatedAt, createdAt } = tent
 
   const activeLoan = loans?.find((l) => !l.returnedAt)
 
-  const goToDeletePanel = () =>
-    setModal({ visible: true, component: <TentDeletePanel tent={tent} /> })
-  const goToUpdatePanel = () =>
-    setModal({ visible: true, component: <TentUpdatePanel tent={tent} /> })
+  const missingItems = parseMissingItems(comments)
+  const missingKeys = Object.entries(missingItems).filter(([, v]) => v).map(([k]) => k)
+  const hasRealComment = comments && (() => { try { JSON.parse(comments); return false } catch { return true } })()
+
+  const isProblematic = !complete || state === "EN_REPARATION"
+
+  const goToDeletePanel = () => setModal({ visible: true, component: <TentDeletePanel tent={tent} /> })
+  const goToUpdatePanel = () => setModal({ visible: true, component: <TentUpdatePanel tent={tent} /> })
 
   const publicUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? process.env.NEXT_PUBLIC_URL ?? ""}/tente/${id}`
 
   return (
     <>
-      <Head>
-        <title>{`Tente ${identifyingLabel} | MonMatos`}</title>
-      </Head>
+      <Head><title>{`Tente ${identifyingLabel} | MonMatos`}</title></Head>
       <div className="mx-auto max-w-[450px] space-y-6 py-4">
-        <div className="mx-auto flex h-28 w-28 items-center justify-center rounded-full border-4 border-slate-800">
-          <h2 className="max-w-[100px] break-words text-center text-xl font-bold leading-tight">
+        <div className={`mx-auto flex h-28 w-28 items-center justify-center rounded-full border-4 ${
+          isProblematic ? "border-red-500" : "border-slate-800"
+        }`}>
+          <h2 className={`max-w-[100px] break-words text-center text-xl font-bold leading-tight ${
+            isProblematic ? "text-red-600" : ""
+          }`}>
             {identifyingLabel}
           </h2>
         </div>
+
+        {isProblematic && (
+          <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3">
+            <p className="text-sm font-semibold text-red-700">
+              {state === "EN_REPARATION" ? "🔧 En réparation" : ""}
+              {!complete && state !== "EN_REPARATION" ? "⚠️ Tente incomplète" : ""}
+              {state === "EN_REPARATION" && !complete ? " · Incomplète" : ""}
+            </p>
+            {missingKeys.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1">
+                {missingKeys.map((k) => (
+                  <span key={k} className="rounded-full bg-red-100 border border-red-200 px-2 py-0.5 text-xs font-semibold text-red-700">
+                    ⚠️ {MISSING_LABELS[k] ?? k}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="flex flex-wrap items-center justify-center gap-2 pt-4">
           <Button type="button" onClick={goToUpdatePanel} size="sm" icon="HiPencil" className="max-w-fit">Modifier</Button>
@@ -103,11 +135,7 @@ const TentViewPanel: FC<UIProps<{ tent: Tent }>> = ({ tent }) => {
 
         <div>
           <p className="text-lg font-bold">Informations</p>
-          <p>
-            {createdAt >= updatedAt
-              ? `Créée le ${createdAt.toLocaleDateString()}`
-              : `Modifiée le ${updatedAt.toLocaleDateString()}`}
-          </p>
+          <p>{createdAt >= updatedAt ? `Créée le ${createdAt.toLocaleDateString()}` : `Modifiée le ${updatedAt.toLocaleDateString()}`}</p>
         </div>
 
         <div className="space-y-2">
@@ -120,9 +148,12 @@ const TentViewPanel: FC<UIProps<{ tent: Tent }>> = ({ tent }) => {
           {activeLoan && (
             <TentCharacteristic label="Emprunté par" value={unitLabels[activeLoan.borrower] ?? activeLoan.borrower} />
           )}
-          <p className="py-2 italic">
-            {comments ? `Commentaire: "${comments}"` : "Pas encore de commentaire ..."}
-          </p>
+          {hasRealComment && (
+            <p className="py-2 italic">{`Commentaire: "${comments}"`}</p>
+          )}
+          {!hasRealComment && !comments && (
+            <p className="py-2 text-slate-400 italic">Pas encore de commentaire ...</p>
+          )}
         </div>
 
         {/* Loan management */}
@@ -150,9 +181,7 @@ const TentViewPanel: FC<UIProps<{ tent: Tent }>> = ({ tent }) => {
             <div className="space-y-3">
               <select value={selectedUnit} onChange={(e) => setSelectedUnit(e.target.value)} className="w-full rounded-lg border border-slate-200 p-2 text-sm outline-none">
                 <option value="">— Choisir une unité —</option>
-                {Object.entries(unitLabels).map(([key, lbl]) => (
-                  <option key={key} value={key}>{lbl}</option>
-                ))}
+                {Object.entries(unitLabels).map(([key, lbl]) => <option key={key} value={key}>{lbl}</option>)}
               </select>
               <input type="text" value={note} onChange={(e) => setNote(e.target.value)} placeholder="Note (optionnel)" className="w-full rounded-lg border border-slate-200 p-2 text-sm outline-none" />
               <div className="flex gap-2">
@@ -189,9 +218,7 @@ const TentViewPanel: FC<UIProps<{ tent: Tent }>> = ({ tent }) => {
           )}
         </div>
 
-        <Button type="button" onClick={goToDeletePanel} size="sm" variant="red" icon="HiTrash" className="ml-auto max-w-fit">
-          Supprimer
-        </Button>
+        <Button type="button" onClick={goToDeletePanel} size="sm" variant="red" icon="HiTrash" className="ml-auto max-w-fit">Supprimer</Button>
       </div>
     </>
   )

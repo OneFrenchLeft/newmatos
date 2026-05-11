@@ -67,6 +67,19 @@ export const tentsRouter = t.router({
       } catch (error) { handleError(error) }
     }),
 
+  // Mutation publique pour signaler un problème (passe la tente en EN_REPARATION)
+  reportProblem: t.procedure
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const { prisma } = ctx
+      try {
+        return await prisma.tent.update({
+          where: { id: input.id },
+          data: { state: "EN_REPARATION" },
+        })
+      } catch (error) { handleError(error) }
+    }),
+
   delete: authedProcedure.input(z.string()).mutation(async ({ ctx, input }) => {
     const { prisma } = ctx
     try {
