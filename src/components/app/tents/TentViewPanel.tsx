@@ -26,23 +26,16 @@ const unitLabels: Record<string, string> = {
 }
 
 const MISSING_LABELS: Record<string, string> = {
-  zip: "Zip",
-  faitiere: "Faitière",
-  doubleToit: "Double toit",
-  toile: "Toile de tente",
-  tapis: "Tapis de sol",
-  sardines: "Sardines",
-  sacTente: "Sac de tentes",
+  missingZip:        "Zip",
+  missingFaitiere:   "Faitière",
+  missingDoubleToit: "Double toit",
+  missingToile:      "Toile de tente",
+  missingTapis:      "Tapis de sol",
+  missingSardines:   "Sardines",
+  missingSacTente:   "Sac de tentes",
 }
 
-function parseMissingItems(comments: string | null | undefined): Record<string, boolean> {
-  if (!comments) return {}
-  try {
-    const parsed = JSON.parse(comments)
-    if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) return parsed as Record<string, boolean>
-  } catch { /* not JSON */ }
-  return {}
-}
+const MISSING_KEYS = Object.keys(MISSING_LABELS)
 
 const TentViewPanel: FC<UIProps<{ tent: Tent }>> = ({ tent }) => {
   const { setModal } = useModalContext()
@@ -67,13 +60,13 @@ const TentViewPanel: FC<UIProps<{ tent: Tent }>> = ({ tent }) => {
   const [selectedUnit, setSelectedUnit] = useState("")
   const [note, setNote] = useState("")
 
-  const { id, identifyingLabel, size, state, type, integrated, complete, pegs, comments, updatedAt, createdAt } = tent
+  const { id, identifyingLabel, size, state, type, integrated, complete, pegs, updatedAt, createdAt } = tent
 
   const activeLoan = loans?.find((l) => !l.returnedAt)
 
-  const missingItems = parseMissingItems(comments)
-  const missingKeys = Object.entries(missingItems).filter(([, v]) => v).map(([k]) => k)
-  const hasRealComment = comments && (() => { try { JSON.parse(comments); return false } catch { return true } })()
+  // Lecture directe des booléens BDD — aucun JSON
+  const tentRecord = tent as unknown as Record<string, unknown>
+  const missingKeys = MISSING_KEYS.filter((k) => tentRecord[k] === true)
 
   const isProblematic = !complete || state === "EN_REPARATION"
 
@@ -148,15 +141,9 @@ const TentViewPanel: FC<UIProps<{ tent: Tent }>> = ({ tent }) => {
           {activeLoan && (
             <TentCharacteristic label="Emprunté par" value={unitLabels[activeLoan.borrower] ?? activeLoan.borrower} />
           )}
-          {hasRealComment && (
-            <p className="py-2 italic">{`Commentaire: "${comments}"`}</p>
-          )}
-          {!hasRealComment && !comments && (
-            <p className="py-2 text-slate-400 italic">Pas encore de commentaire ...</p>
-          )}
         </div>
 
-        {/* Loan management */}
+        {/* Gestion des emprunts */}
         <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
           <div className="flex items-center justify-between">
             <p className="font-semibold text-slate-700">Gestion des emprunts</p>
