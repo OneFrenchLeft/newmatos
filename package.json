@@ -26,7 +26,7 @@
     "formik": "^2.2.9",
     "next": "^12.2.5",
     "next-auth": "^4.10.3",
-    "nodemailer": "^7.0.13",
+    "nodemailer": "^6.9.13",
     "nprogress": "^0.2.0",
     "prettier": "^2.7.1",
     "prettier-plugin-tailwindcss": "^0.1.13",
