@@ -36,16 +36,12 @@ const MobileNavbar = () => {
         <div className="flex h-full w-full flex-col items-start">
           <div className="flex w-full items-center justify-between p-4 shadow-md">
             <Link href="/">
-              <a>
-                <Logo size="sm" />
-              </a>
+              <Logo size="sm" />
             </Link>
-
             <button type="button" onClick={hideMenu}>
               <Icon name="XIcon" />
             </button>
           </div>
-
           <nav className="flex flex-col items-start space-y-3 p-6">
             <HeaderLink
               label="Inscrire mon groupe"

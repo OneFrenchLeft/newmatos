@@ -13,9 +13,7 @@ const Navbar = () => {
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 0)
-
     window.addEventListener("scroll", handleScroll)
-
     return () => {
       window.removeEventListener("scroll", handleScroll)
     }
@@ -31,16 +29,12 @@ const Navbar = () => {
         <div className="flex items-center">
           <div className="hidden lg:block">
             <Link href="/">
-              <a>
-                <Logo />
-              </a>
+              <Logo />
             </Link>
           </div>
           <div className="lg:hidden">
             <Link href="/">
-              <a>
-                <Logo size="sm" />
-              </a>
+              <Logo size="sm" />
             </Link>
           </div>
           <nav className="ml-10 hidden items-center gap-6 sm:flex">
