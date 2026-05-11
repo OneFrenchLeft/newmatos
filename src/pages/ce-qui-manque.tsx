@@ -19,6 +19,8 @@ type MissingItems = {
   sacTente: boolean
 }
 
+const ITEM_KEYS = ["zip", "faitiere", "doubleToit", "toile", "tapis", "sardines", "sacTente"] as const
+
 const defaultItems = (): MissingItems => ({
   zip: false,
   faitiere: false,
@@ -39,12 +41,37 @@ const ITEM_LABELS: Record<keyof MissingItems, string> = {
   sacTente: "Sac de tentes",
 }
 
+/**
+ * Parse robuste : accepte tout objet JSON contenant au moins une clé connue.
+ * Les clés manquantes sont complétées à false.
+ */
+const getItems = (tent: { comments: string | null }): MissingItems => {
+  if (!tent.comments) return defaultItems()
+  try {
+    const parsed = JSON.parse(tent.comments)
+    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) return defaultItems()
+    const hasKnownKey = ITEM_KEYS.some((k) => k in parsed)
+    if (!hasKnownKey) return defaultItems()
+    const result = defaultItems()
+    for (const k of ITEM_KEYS) {
+      if (typeof parsed[k] === "boolean") result[k] = parsed[k]
+    }
+    return result
+  } catch {
+    return defaultItems()
+  }
+}
+
 const CeQuiManquePage: NextPageWithLayout = () => {
   const router = useRouter()
   const { data: tents, isLoading, refetch } = trpc.tents.getAll.useQuery()
-  const updateMutation = trpc.tents.update.useMutation({
+
+  // Utilise updateChecklist (mutation publique dédiée) pour ne pas écraser les autres champs
+  const updateChecklistMutation = trpc.tents.updateChecklist.useMutation({
     onSettled: () => refetch(),
+    onError: () => toast.error("Erreur lors de la sauvegarde"),
   })
+
   const highlightId = (router.query.t as string) || null
   const highlightRef = useRef<HTMLTableRowElement | null>(null)
 
@@ -55,39 +82,9 @@ const CeQuiManquePage: NextPageWithLayout = () => {
   }, [tents])
 
   const toggle = (tent: NonNullable<typeof tents>[number], field: keyof MissingItems) => {
-    let current: MissingItems
-    try {
-      current = tent.comments ? JSON.parse(tent.comments) : defaultItems()
-      if (typeof current.zip === "undefined") current = defaultItems()
-    } catch {
-      current = defaultItems()
-    }
+    const current = getItems(tent)
     const updated: MissingItems = { ...current, [field]: !current[field] }
-    const hasAnyMissing = Object.values(updated).some(Boolean)
-
-    updateMutation.mutate({
-      id: tent.id,
-      values: {
-        identifyingLabel: tent.identifyingLabel,
-        state: tent.state,
-        size: tent.size,
-        integrated: tent.integrated,
-        type: tent.type,
-        pegs: tent.pegs ?? 0,
-        complete: !hasAnyMissing,
-        comments: JSON.stringify(updated),
-      },
-    }, {
-      onError: () => toast.error("Erreur lors de la sauvegarde"),
-    })
-  }
-
-  const getItems = (tent: NonNullable<typeof tents>[number]): MissingItems => {
-    try {
-      const parsed = tent.comments ? JSON.parse(tent.comments) : null
-      if (parsed && typeof parsed.zip !== "undefined") return parsed as MissingItems
-    } catch { /* ignore */ }
-    return defaultItems()
+    updateChecklistMutation.mutate({ id: tent.id, checklist: updated })
   }
 
   const sortedTents = (tents ?? []).slice().sort((a, b) =>
@@ -113,7 +110,7 @@ const CeQuiManquePage: NextPageWithLayout = () => {
             </span>
           )}
         </div>
-        <p className="text-slate-500">Cochez les éléments manquants pour chaque tente. Le tag "Complète" est mis à jour automatiquement.</p>
+        <p className="text-slate-500">Cochez les éléments manquants pour chaque tente. Le tag « Complète » est mis à jour automatiquement.</p>
 
         {isLoading && (
           <div className="space-y-3">
@@ -183,9 +180,10 @@ const CeQuiManquePage: NextPageWithLayout = () => {
                           <label className="inline-flex cursor-pointer items-center justify-center">
                             <input
                               type="checkbox"
-                              checked={items[field]}
-                              onChange={() => toggle(tent, field)}
+                              checked={items[field as keyof MissingItems]}
+                              onChange={() => toggle(tent, field as keyof MissingItems)}
                               className="h-5 w-5 cursor-pointer accent-red-500"
+                              disabled={updateChecklistMutation.isLoading}
                             />
                           </label>
                         </td>

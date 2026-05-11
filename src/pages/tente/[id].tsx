@@ -51,14 +51,25 @@ const CHECKLIST_KEYS = Object.keys(ITEM_LABELS)
 
 type Checklist = Record<string, boolean>
 
-/** Parse le champ comments s'il contient un JSON checklist, sinon retourne null */
+/**
+ * Parse le champ comments s'il contient un JSON checklist.
+ * Accepte tout objet JSON valide contenant au moins une clé connue de la checklist.
+ * Plus robuste que de vérifier uniquement la présence de "zip".
+ */
 function parseChecklist(comments: string | null | undefined): Checklist | null {
   if (!comments) return null
   try {
     const parsed = JSON.parse(comments)
-    if (typeof parsed === "object" && parsed !== null && "zip" in parsed) {
-      return parsed as Checklist
+    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) return null
+    // Valide si au moins une clé connue est présente
+    const hasKnownKey = CHECKLIST_KEYS.some((k) => k in parsed)
+    if (!hasKnownKey) return null
+    // On reconstruit proprement en ne gardant que les clés connues
+    const checklist: Checklist = {}
+    for (const k of CHECKLIST_KEYS) {
+      checklist[k] = typeof parsed[k] === "boolean" ? parsed[k] : false
     }
+    return checklist
   } catch { /* pas du JSON */ }
   return null
 }
@@ -68,7 +79,10 @@ function getRealComment(comments: string | null | undefined): string | null {
   if (!comments) return null
   try {
     const parsed = JSON.parse(comments)
-    if (typeof parsed === "object" && parsed !== null && "zip" in parsed) return null
+    if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) {
+      const hasKnownKey = CHECKLIST_KEYS.some((k) => k in parsed)
+      if (hasKnownKey) return null
+    }
   } catch { /* pas du JSON = vrai commentaire */ }
   return comments
 }
