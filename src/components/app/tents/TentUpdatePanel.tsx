@@ -7,6 +7,7 @@ import type { Tent } from "@/pages/tentes"
 import { trpc } from "@/utils/trpc"
 import { UIProps } from "@/utils/typedProps"
 import { State } from "@prisma/client"
+import classNames from "classnames"
 import Head from "next/head"
 import { FC, FormEvent, useState } from "react"
 import { toast } from "react-hot-toast"
@@ -94,13 +95,21 @@ const TentUpdatePanel: FC<UIProps<{ tent: Tent }>> = ({ tent }) => {
         <title>{`Modifier la tente ${tent.identifyingLabel} | MonMatos`}</title>
       </Head>
       <form className="mx-auto max-w-[450px] space-y-6 py-4" onSubmit={handleUpdate}>
-        <div className="mx-auto flex h-28 w-28 items-center justify-center rounded-full border-4 border-slate-800">
+        <div
+          className={classNames(
+            "mx-auto flex h-28 w-28 items-center justify-center rounded-full border-4",
+            complete ? "border-slate-800" : "border-red-500"
+          )}
+        >
           <input
             type="text"
             value={label}
             onChange={(e) => setLabel(e.target.value)}
             maxLength={20}
-            className="w-[90px] rounded-lg border-2 border-dashed bg-transparent p-1 px-2 text-center text-lg font-bold outline-none"
+            className={classNames(
+              "w-[90px] rounded-lg border-2 border-dashed bg-transparent p-1 px-2 text-center text-lg font-bold outline-none",
+              !complete && "text-red-500"
+            )}
           />
         </div>
         <div className="pt-4">
@@ -115,11 +124,10 @@ const TentUpdatePanel: FC<UIProps<{ tent: Tent }>> = ({ tent }) => {
         </div>
         <div className="space-y-2">
           <TentInput label="Taille" value={size} setValue={(v) => setSize(v as string)} options={SIZE_OPTIONS} />
-          <TentInput label="ÉTAT" value={state} setValue={(v) => setState(v as State)} options={Object.entries(stateLabels).map(([k, v]) => [k, v] as [string, string])} />
-          <TentInput label="Complète ?" value={complete ? "OUI" : "NON"} setValue={(v) => setComplete(v === "OUI")} options={[["OUI","OUI"],["NON","NON"]]} />
-          <TentInput label="TYPE" value={type} setValue={(v) => setType(v as string)} options={TYPE_OPTIONS} />
-          <TentInput label="Tapis de sol" value={integrated ? "INTÉGRÉ" : "NORMAL"} setValue={(v) => setIntegrated(v === "INTÉGRÉ")} options={[["INTÉGRÉ","INTÉGRÉ"],["NORMAL","NORMAL"]]} />
-          {/* Sardines */}
+          <TentInput label="état" value={state} setValue={(v) => setState(v as State)} options={Object.entries(stateLabels).map(([k, v]) => [k, v] as [string, string])} />
+          <TentInput label="Complète ?" value={complete ? "Oui" : "Non"} setValue={(v) => setComplete(v === "Oui")} options={[["Oui","Oui"],["Non","Non"]]} />
+          <TentInput label="Type" value={type} setValue={(v) => setType(v as string)} options={TYPE_OPTIONS} />
+          <TentInput label="Tapis de sol" value={integrated ? "Intégré" : "Non intégré"} setValue={(v) => setIntegrated(v === "Intégré")} options={[["Intégré","Intégré"],["Non intégré","Non intégré"]]} />
           <div className="flex items-center rounded-md text-center text-sm font-semibold bg-gray-200">
             <span className="w-[50%] truncate rounded-md rounded-r-none bg-slate-900 px-1 py-2 text-slate-50">
               Sardines

@@ -51,58 +51,20 @@ const ActionsPanel: FC<UIProps<{ tents: Tent[] }>> = ({ tents }) => {
             <span>Tentes</span>
           </h3>
           <div className="flex flex-col items-center justify-center gap-3">
-            <ButtonLink
-              href="/tentes?t=add"
-              variant="black"
-              size="sm"
-              icon="BsPlusLg"
-            >
-              Ajouter une tente
-            </ButtonLink>
-            <ButtonLink
-              href="/tentes"
-              variant="white"
-              icon="TiThList"
-              size="sm"
-            >
-              Parcourir les tentes
-            </ButtonLink>
-            <ButtonLink
-              href="/ce-qui-manque"
-              variant="white"
-              icon="TiThList"
-              size="sm"
-            >
-              Ce qui manque
-            </ButtonLink>
+            <ButtonLink href="/tentes?t=add" variant="black" size="sm" icon="BsPlusLg">Ajouter une tente</ButtonLink>
+            <ButtonLink href="/tentes" variant="white" icon="TiThList" size="sm">Parcourir les tentes</ButtonLink>
+            <ButtonLink href="/ce-qui-manque" variant="white" icon="MdOutlineErrorOutline" size="sm">Ce qui manque</ButtonLink>
+            <ButtonLink href="/reparation" variant="white" icon="HiWrench" size="sm">Réparations en cours</ButtonLink>
+            <Button type="button" icon="RiFileExcel2Fill" size="sm" onClick={downloadExcel(tents, movement)}>Exporter en .xlsx</Button>
             <Button
-              type="button"
-              icon="RiFileExcel2Fill"
-              size="sm"
-              onClick={downloadExcel(tents, movement)}
-            >
-              Exporter en .xlsx
-            </Button>
-            <Button
-              type="button"
-              icon="RiFileExcel2Fill"
-              size="sm"
-              variant="white"
-              onClick={handleImportClick}
-              disabled={importMutation.isLoading}
+              type="button" icon="RiFileExcel2Fill" size="sm" variant="white"
+              onClick={handleImportClick} disabled={importMutation.isLoading}
             >
               {importMutation.isLoading ? "Import en cours..." : "Importer un .xlsx"}
             </Button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".xlsx,.xls"
-              className="hidden"
-              onChange={handleFileChange}
-            />
+            <input ref={fileInputRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleFileChange} />
           </div>
         </div>
-        {/* Supprimer le groupe */}
         <div className="mx-auto mt-10 w-full max-w-[350px] space-y-3 border-t border-red-200 pt-6">
           <h3 className="ml-2 flex items-center space-x-2 self-start text-xl font-semibold text-red-600">
             <Icon name="MdDeleteForever" />
@@ -116,19 +78,14 @@ const ActionsPanel: FC<UIProps<{ tents: Tent[] }>> = ({ tents }) => {
 }
 
 const DeleteGroupButton: FC = () => {
-  const trpcCtx = trpc.useContext()
   const deleteMutation = trpc.group.delete.useMutation({
-    onSuccess() {
-      window.location.href = "/"
-    },
-    onError(err) {
-      toast.error(err.message || "Erreur lors de la suppression")
-    },
+    onSuccess() { window.location.href = "/" },
+    onError(err) { toast.error(err.message || "Erreur lors de la suppression") },
   })
 
   const handleDelete = () => {
     const answer = window.prompt(
-      'Pour confirmer la suppression définitive de votre groupe et de toutes ses tentes, tapez exactement : SUPPRIMER',
+      'Pour confirmer la suppression définitive de votre groupe et de toutes ses tentes, tapez exactement : SUPPRIMER',
     )
     if (answer !== "SUPPRIMER") {
       if (answer !== null) toast.error("Confirmation incorrecte. Suppression annulée.")
@@ -136,21 +93,14 @@ const DeleteGroupButton: FC = () => {
     }
     toast.promise(
       deleteMutation.mutateAsync({ confirmation: "SUPPRIMER" }),
-      {
-        loading: "Suppression en cours...",
-        success: "Groupe supprimé",
-        error: "Erreur lors de la suppression",
-      },
+      { loading: "Suppression en cours...", success: "Groupe supprimé", error: "Erreur lors de la suppression" },
     )
   }
 
   return (
     <Button
-      type="button"
-      size="sm"
-      variant="white"
-      onClick={handleDelete}
-      disabled={deleteMutation.isLoading}
+      type="button" size="sm" variant="white"
+      onClick={handleDelete} disabled={deleteMutation.isLoading}
       className="w-full border border-red-300 text-red-600 hover:bg-red-50"
     >
       {deleteMutation.isLoading ? "Suppression..." : "Supprimer le groupe"}

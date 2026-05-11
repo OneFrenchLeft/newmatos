@@ -5,7 +5,8 @@ import { sortTentLabel } from "@/utils/tentSort"
 import classNames from "classnames"
 import Head from "next/head"
 import { useRouter } from "next/router"
-import { ReactElement, useEffect, useRef, useState } from "react"
+import { ReactElement, useEffect, useRef } from "react"
+import { toast } from "react-hot-toast"
 import { NextPageWithLayout } from "./_app"
 
 type MissingItems = {
@@ -18,8 +19,6 @@ type MissingItems = {
   sacTente: boolean
 }
 
-type MissingState = Record<string, MissingItems>
-
 const defaultItems = (): MissingItems => ({
   zip: false,
   faitiere: false,
@@ -29,8 +28,6 @@ const defaultItems = (): MissingItems => ({
   sardines: false,
   sacTente: false,
 })
-
-const STORAGE_KEY = "ce-qui-manque"
 
 const ITEM_LABELS: Record<keyof MissingItems, string> = {
   zip: "Zip",
@@ -44,45 +41,62 @@ const ITEM_LABELS: Record<keyof MissingItems, string> = {
 
 const CeQuiManquePage: NextPageWithLayout = () => {
   const router = useRouter()
-  const { data: tents, isLoading } = trpc.tents.getAll.useQuery()
-  const [missing, setMissing] = useState<MissingState>({})
+  const { data: tents, isLoading, refetch } = trpc.tents.getAll.useQuery()
+  const updateMutation = trpc.tents.update.useMutation({
+    onSettled: () => refetch(),
+  })
   const highlightId = (router.query.t as string) || null
   const highlightRef = useRef<HTMLTableRowElement | null>(null)
 
-  useEffect(() => {
-    try {
-      const saved = sessionStorage.getItem(STORAGE_KEY)
-      if (saved) setMissing(JSON.parse(saved) as MissingState)
-    } catch { /* ignore */ }
-  }, [])
-
-  useEffect(() => {
-    try { sessionStorage.setItem(STORAGE_KEY, JSON.stringify(missing)) }
-    catch { /* ignore */ }
-  }, [missing])
-
-  // Scroll to highlighted tent on load
   useEffect(() => {
     if (highlightRef.current) {
       highlightRef.current.scrollIntoView({ behavior: "smooth", block: "center" })
     }
   }, [tents])
 
-  const toggle = (tentId: string, field: keyof MissingItems) => {
-    setMissing((prev) => ({
-      ...prev,
-      [tentId]: { ...(prev[tentId] ?? defaultItems()), [field]: !(prev[tentId]?.[field] ?? false) },
-    }))
+  const toggle = (tent: NonNullable<typeof tents>[number], field: keyof MissingItems) => {
+    // Calcul du nouvel état "manque" basé sur les comments JSON
+    let current: MissingItems
+    try {
+      current = tent.comments ? JSON.parse(tent.comments) : defaultItems()
+      if (typeof current.zip === "undefined") current = defaultItems()
+    } catch {
+      current = defaultItems()
+    }
+    const updated: MissingItems = { ...current, [field]: !current[field] }
+    const hasAnyMissing = Object.values(updated).some(Boolean)
+
+    updateMutation.mutate({
+      id: tent.id,
+      values: {
+        identifyingLabel: tent.identifyingLabel,
+        state: tent.state,
+        size: tent.size,
+        integrated: tent.integrated,
+        type: tent.type,
+        pegs: tent.pegs ?? 0,
+        complete: !hasAnyMissing,
+        comments: JSON.stringify(updated),
+      },
+    }, {
+      onError: () => toast.error("Erreur lors de la sauvegarde"),
+    })
   }
 
-  const getItems = (tentId: string): MissingItems => missing[tentId] ?? defaultItems()
+  const getItems = (tent: NonNullable<typeof tents>[number]): MissingItems => {
+    try {
+      const parsed = tent.comments ? JSON.parse(tent.comments) : null
+      if (parsed && typeof parsed.zip !== "undefined") return parsed as MissingItems
+    } catch { /* ignore */ }
+    return defaultItems()
+  }
 
   const sortedTents = (tents ?? []).slice().sort((a, b) =>
     sortTentLabel(a.identifyingLabel, b.identifyingLabel, "asc")
   )
 
   const missingCount = sortedTents.filter((tent) => {
-    const items = getItems(tent.id)
+    const items = getItems(tent)
     return Object.values(items).some(Boolean)
   }).length
 
@@ -100,7 +114,7 @@ const CeQuiManquePage: NextPageWithLayout = () => {
             </span>
           )}
         </div>
-        <p className="text-slate-500">Cochez les éléments manquants pour chaque tente.</p>
+        <p className="text-slate-500">Cochez les éléments manquants pour chaque tente. Le tag "Complète" est mis à jour automatiquement.</p>
 
         {isLoading && (
           <div className="space-y-3">
@@ -113,7 +127,6 @@ const CeQuiManquePage: NextPageWithLayout = () => {
         {!isLoading && sortedTents.length === 0 && (
           <div className="flex flex-col items-center gap-3 py-16 text-slate-400">
             <p className="text-lg font-medium">Aucune tente enregistrée</p>
-            <p className="text-sm">Ajoutez des tentes depuis la page "Mes Tentes".</p>
           </div>
         )}
 
@@ -131,7 +144,7 @@ const CeQuiManquePage: NextPageWithLayout = () => {
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {sortedTents.map((tent) => {
-                  const items = getItems(tent.id)
+                  const items = getItems(tent)
                   const hasIssue = Object.values(items).some(Boolean)
                   const isHighlighted = tent.id === highlightId
                   return (
@@ -146,7 +159,10 @@ const CeQuiManquePage: NextPageWithLayout = () => {
                     >
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
-                          <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full border-2 border-slate-700 text-xs font-bold">
+                          <div className={classNames(
+                            "flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full border-2 text-xs font-bold",
+                            hasIssue ? "border-red-500 text-red-500" : "border-slate-700"
+                          )}>
                             {tent.identifyingLabel.length > 3 ? tent.identifyingLabel.slice(0, 3) : tent.identifyingLabel}
                           </div>
                           <div>
@@ -169,7 +185,7 @@ const CeQuiManquePage: NextPageWithLayout = () => {
                             <input
                               type="checkbox"
                               checked={items[field]}
-                              onChange={() => toggle(tent.id, field)}
+                              onChange={() => toggle(tent, field)}
                               className="h-5 w-5 cursor-pointer accent-red-500"
                             />
                           </label>

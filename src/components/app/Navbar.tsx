@@ -31,6 +31,7 @@ const Navbar = () => {
             <HeaderLink label="Mon groupe" href="/groupe" />
             <HeaderLink label="Mes tentes" href="/tentes" />
             <HeaderLink label="Ce qui manque" href="/ce-qui-manque" />
+            <HeaderLink label="Réparations" href="/reparation" />
           </nav>
         </div>
         <div className="hidden items-center lg:flex">

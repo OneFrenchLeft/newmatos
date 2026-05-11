@@ -37,6 +37,7 @@ const MobileNavbar = () => {
             <HeaderLink label="Mon groupe" href="/groupe" icon="FaChurch" />
             <HeaderLink label="Mes tentes" href="/tentes" icon="FaCampground" />
             <HeaderLink label="Ce qui manque" href="/ce-qui-manque" icon="MdOutlineErrorOutline" />
+            <HeaderLink label="Réparations" href="/reparation" icon="HiWrench" />
             <button
               className="flex items-center gap-2 text-red-600 transition-colors"
               onClick={() => signOut({ callbackUrl: "/connexion" })}

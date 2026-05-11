@@ -80,7 +80,6 @@ const TentAddPanel: FC<UIProps<{ tents: Tents }>> = ({ tents }) => {
   const handleAdd = async (e: FormEvent) => {
     e.preventDefault()
     if (!labelValid) return
-
     const createPromise = createMutation.mutateAsync({
       identifyingLabel: trimmed,
       state,
@@ -97,18 +96,13 @@ const TentAddPanel: FC<UIProps<{ tents: Tents }>> = ({ tents }) => {
         error: getTentsErrorMessage,
         loading: "Ajout en cours ...",
       })
-    } catch {
-      // handled above
-    }
+    } catch { /* handled */ }
   }
 
   return (
     <>
-      <Head>
-        <title>Ajouter une tente | MonMatos</title>
-      </Head>
+      <Head><title>Ajouter une tente | MonMatos</title></Head>
       <form className="mx-auto max-w-[450px] space-y-6 py-4" onSubmit={handleAdd}>
-        {/* Identifiant */}
         <div
           className={classNames(
             "mx-auto flex h-28 w-28 items-center justify-center rounded-full border-4",
@@ -129,7 +123,6 @@ const TentAddPanel: FC<UIProps<{ tents: Tents }>> = ({ tents }) => {
             maxLength={20}
           />
         </div>
-
         <div className="pt-4">
           <div
             className={classNames(
@@ -149,29 +142,21 @@ const TentAddPanel: FC<UIProps<{ tents: Tents }>> = ({ tents }) => {
             </span>
           </div>
         </div>
-
         <div>
           <p className="text-lg font-bold">Informations</p>
           <p>Cliquez sur les éléments afin de les modifier</p>
         </div>
-
         <div className="space-y-2">
           <TentInput label="Taille" value={size} setValue={(v) => setSize(v as string)} options={SIZE_OPTIONS} />
-          <TentInput label="ÉTAT" value={state} setValue={(v) => setState(v as State)} options={Object.entries(stateLabels).map(([k, v]) => [k, v] as [string, string])} />
-          <TentInput label="Complète ?" value={complete ? "OUI" : "NON"} setValue={(v) => setComplete(v === "OUI")} options={[["OUI","OUI"],["NON","NON"]]} />
-          <TentInput label="TYPE" value={type} setValue={(v) => setType(v as string)} options={TYPE_OPTIONS} />
-          <TentInput label="Tapis de sol" value={integrated ? "INTÉGRÉ" : "NORMAL"} setValue={(v) => setIntegrated(v === "INTÉGRÉ")} options={[["INTÉGRÉ","INTÉGRÉ"],["NORMAL","NORMAL"]]} />
-          {/* Sardines */}
+          <TentInput label="état" value={state} setValue={(v) => setState(v as State)} options={Object.entries(stateLabels).map(([k, v]) => [k, v] as [string, string])} />
+          <TentInput label="Complète ?" value={complete ? "Oui" : "Non"} setValue={(v) => setComplete(v === "Oui")} options={[["Oui","Oui"],["Non","Non"]]} />
+          <TentInput label="Type" value={type} setValue={(v) => setType(v as string)} options={TYPE_OPTIONS} />
+          <TentInput label="Tapis de sol" value={integrated ? "Intégré" : "Non intégré"} setValue={(v) => setIntegrated(v === "Intégré")} options={[["Intégré","Intégré"],["Non intégré","Non intégré"]]} />
           <div className="flex items-center rounded-md text-center text-sm font-semibold bg-gray-200">
-            <span className="w-[50%] truncate rounded-md rounded-r-none bg-slate-900 px-1 py-2 text-slate-50">
-              Sardines
-            </span>
+            <span className="w-[50%] truncate rounded-md rounded-r-none bg-slate-900 px-1 py-2 text-slate-50">Sardines</span>
             <div className="w-full cursor-pointer pr-1">
               <input
-                type="number"
-                min={0}
-                max={100}
-                placeholder="Nombre"
+                type="number" min={0} max={100} placeholder="Nombre"
                 value={pegs === "" ? "" : pegs}
                 onChange={(e) => setPegs(e.target.value === "" ? "" : parseInt(e.target.value))}
                 className="w-full border-none bg-transparent py-1 px-4 font-semibold outline-none text-center"
@@ -179,9 +164,7 @@ const TentAddPanel: FC<UIProps<{ tents: Tents }>> = ({ tents }) => {
             </div>
           </div>
         </div>
-
         <Textarea label="Commentaires" value={comments} onChange={(e) => setComments(e.target.value)} />
-
         <div className="flex flex-wrap items-center justify-center gap-8">
           <Button type="button" onClick={closePanel} size="sm" icon="HiArrowLeft" variant="white" className="max-w-fit">Annuler</Button>
           <Button type="submit" disabled={!trimmed || !labelValid || createMutation.isLoading} size="sm" icon="RiSave2Fill" className="max-w-fit">

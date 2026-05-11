@@ -4,23 +4,22 @@ import { TRPCError } from "@trpc/server"
 import { z } from "zod"
 import { authedProcedure, t } from "../trpc"
 
+const repairTaskSchema = z.object({
+  description: z.string().min(1),
+  assignedTo: z.string().default(""),
+  done: z.boolean().default(false),
+})
+
 export const tentsRouter = t.router({
   getAll: authedProcedure.query(async ({ ctx }) => {
     const { session, prisma } = ctx
-
-    const tents = await prisma.tent.findMany({
+    return prisma.tent.findMany({
       where: { groupId: session.user.id },
-      // DB-level ordering: numbers first numerically, then names alphabetically
-      // We sort in JS after fetch for the smart sort logic
       include: {
-        loans: {
-          orderBy: { loanedAt: "desc" },
-          take: 1,
-        },
+        loans: { orderBy: { loanedAt: "desc" }, take: 1 },
+        repairTasks: { orderBy: { createdAt: "asc" } },
       },
     })
-
-    return tents
   }),
 
   getById: authedProcedure.input(z.string()).query(async ({ input, ctx }) => {
@@ -29,6 +28,7 @@ export const tentsRouter = t.router({
       where: { id: input },
       include: {
         loans: { orderBy: { loanedAt: "desc" }, take: 1 },
+        repairTasks: { orderBy: { createdAt: "asc" } },
       },
     })
   }),
@@ -52,9 +52,7 @@ export const tentsRouter = t.router({
         return await prisma.tent.create({
           data: { ...input, groupId: session.user.id },
         })
-      } catch (error) {
-        handleError(error)
-      }
+      } catch (error) { handleError(error) }
     }),
 
   update: authedProcedure
@@ -66,19 +64,57 @@ export const tentsRouter = t.router({
           where: { id: input.id },
           data: { ...input.values, groupId: session.user.id },
         })
-      } catch (error) {
-        handleError(error)
-      }
+      } catch (error) { handleError(error) }
     }),
 
   delete: authedProcedure.input(z.string()).mutation(async ({ ctx, input }) => {
     const { prisma } = ctx
     try {
+      await prisma.repairTask.deleteMany({ where: { tentId: input } })
       return await prisma.tent.delete({ where: { id: input } })
-    } catch (error) {
-      handleError(error)
-    }
+    } catch (error) { handleError(error) }
   }),
+
+  // Repair tasks
+  addRepairTask: authedProcedure
+    .input(z.object({ tentId: z.string(), task: repairTaskSchema }))
+    .mutation(async ({ ctx, input }) => {
+      return ctx.prisma.repairTask.create({
+        data: {
+          tentId: input.tentId,
+          description: input.task.description,
+          assignedTo: input.task.assignedTo,
+          done: input.task.done,
+        },
+      })
+    }),
+
+  updateRepairTask: authedProcedure
+    .input(z.object({
+      taskId: z.string(),
+      description: z.string().optional(),
+      assignedTo: z.string().optional(),
+      done: z.boolean().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const { taskId, ...data } = input
+      return ctx.prisma.repairTask.update({
+        where: { id: taskId },
+        data,
+      })
+    }),
+
+  deleteRepairTask: authedProcedure
+    .input(z.string())
+    .mutation(async ({ ctx, input }) => {
+      return ctx.prisma.repairTask.delete({ where: { id: input } })
+    }),
+
+  deleteAllRepairTasks: authedProcedure
+    .input(z.string())
+    .mutation(async ({ ctx, input }) => {
+      return ctx.prisma.repairTask.deleteMany({ where: { tentId: input } })
+    }),
 })
 
 const handleError = (error: unknown) => {

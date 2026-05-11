@@ -34,8 +34,8 @@ const GroupPage: NextPageWithLayout = () => {
       )}
       {tents && (
         <>
-          <ActionsPanel tents={tents} />
           <OverviewPanel tents={tents} />
+          <ActionsPanel tents={tents} />
         </>
       )}
     </div>

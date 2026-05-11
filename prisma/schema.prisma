@@ -18,21 +18,22 @@ model Group {
 }
 
 model Tent {
-  id               String     @id @default(uuid())
+  id               String       @id @default(uuid())
   identifyingLabel String
   size             Int
-  unit             Unit       @default(GROUPE)
+  unit             Unit         @default(GROUPE)
   state            State
-  complete         Boolean    @default(true)
-  integrated       Boolean    @default(false)
-  type             String     @default("Canadienne")
-  pegs             Int        @default(0)
-  comments         String?
-  createdAt        DateTime   @default(now())
-  updatedAt        DateTime   @updatedAt
+  complete         Boolean      @default(true)
+  integrated       Boolean      @default(false)
+  type             String       @default("Canadienne")
+  pegs             Int          @default(0)
+  comments         String?      @db.Text
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
   groupId          String
-  group            Group      @relation(fields: [groupId], references: [id])
+  group            Group        @relation(fields: [groupId], references: [id])
   loans            TentLoan[]
+  repairTasks      RepairTask[]
 
   @@unique([groupId, identifyingLabel], name: "TentIdentifier")
 }
@@ -47,8 +48,24 @@ model TentLoan {
   note       String?
 }
 
+model RepairTask {
+  id          String   @id @default(uuid())
+  tentId      String
+  tent        Tent     @relation(fields: [tentId], references: [id])
+  description String
+  assignedTo  String   @default("")
+  done        Boolean  @default(false)
+  createdAt   DateTime @default(now())
+}
+
 enum Movement {
   SGDF
+  SGDFM
+  SUF
+  AGSE
+  EEUDF
+  EEDF
+  EEIDF
 }
 
 enum Unit {
@@ -61,6 +78,9 @@ enum Unit {
   CARAVELLES
   COMPAGNONS
   RESPONSABLES
+  LOUVETEAUX_JEANNETTES
+  SCOUTS_GUIDES
+  PIONNIERS_CARAVELLES
   GROUPE
 }
 
