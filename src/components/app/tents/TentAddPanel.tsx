@@ -63,7 +63,7 @@ const TentAddPanel: FC<UIProps<{ tents: Tents }>> = ({ tents }) => {
   )
 
   const [label, setLabel] = useState("")
-  const [state, setState] = useState<State>("NEUF")
+  const [state, setState] = useState<State>("Neuf")
   const [size, setSize] = useState("6")
   const [complete, setComplete] = useState(true)
   const [integrated, setIntegrated] = useState(false)
