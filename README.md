@@ -1,12 +1,3 @@
-<p align="center">
-   <br/>
-   <a href="https://monmatos.org" target="_blank"><img src="https://monmatos.org/favicon.ico" width="80px"/></a>
-   <h3 align="center">MonMatos</h3>
-   <p align="center">Scouting equipement management tool</p>
-   <br/>
-</p>
-
-
 ## The stack
 
 - [Typescript](https://www.typescriptlang.org)
