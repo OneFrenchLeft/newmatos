@@ -15,8 +15,6 @@ const TentCard: FC<UIProps<{ tent: Tent }>> = ({ tent }) => {
   const { identifyingLabel, size, state, type } = tent
   const { setModal } = useModalContext()
 
-  const isNumeric = /^\d+$/.test(identifyingLabel.trim())
-
   const openViewPanel = () =>
     setModal({ component: <TentViewPanel tent={tent} />, visible: true })
 
@@ -30,40 +28,33 @@ const TentCard: FC<UIProps<{ tent: Tent }>> = ({ tent }) => {
     setModal({ component: <TentUpdatePanel tent={tent} />, visible: true })
   }
 
+  // Taille du texte dans le cercle selon la longueur de l'identifiant
+  const labelFontSize =
+    identifyingLabel.length <= 2
+      ? "text-2xl"
+      : identifyingLabel.length <= 4
+      ? "text-lg"
+      : identifyingLabel.length <= 6
+      ? "text-sm"
+      : "text-[10px]"
+
   return (
     <Card className="cursor-pointer" onClick={openViewPanel}>
       <div className="flex flex-col gap-4">
         <div className="flex w-full items-center gap-4">
-          <div
-            className={`flex flex-shrink-0 items-center justify-center rounded-full border-4 border-slate-800 ${
-              isNumeric ? "h-20 w-20" : "h-14 w-14"
-            }`}
-          >
-            <h2
-              className={`font-bold ${
-                isNumeric
-                  ? "text-2xl"
-                  : identifyingLabel.length > 6
-                  ? "text-[10px]"
-                  : "text-sm"
-              }`}
-            >
-              {isNumeric ? identifyingLabel : identifyingLabel.slice(0, 8)}
+          <div className="flex h-20 w-20 flex-shrink-0 items-center justify-center rounded-full border-4 border-slate-800">
+            <h2 className={`font-bold ${labelFontSize}`}>
+              {identifyingLabel.slice(0, 8)}
             </h2>
           </div>
           <div className="text-left">
-            {!isNumeric && (
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Tente
-              </p>
-            )}
-            <p className="text-sm font-semibold">{size} place{size > 1 ? "s" : ""}</p>
+            <p className="text-sm font-semibold">{String(size)} place{size > 1 ? "s" : ""}</p>
           </div>
         </div>
 
         <div className="space-y-2">
-          <TentCharacteristic type="state" label="ÉTAT" value={state} variants={stateColors} />
-          <TentCharacteristic type="type" label="TYPE" value={type.toUpperCase()} />
+          <TentCharacteristic type="state" label="\u00c9TAT" value={state} variants={stateColors} />
+          <TentCharacteristic type="type" label="TYPE" value={type} />
         </div>
 
         <div className="flex items-center justify-between">
