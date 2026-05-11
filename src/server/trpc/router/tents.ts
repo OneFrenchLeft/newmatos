@@ -10,6 +10,16 @@ const repairTaskSchema = z.object({
   done: z.boolean().default(false),
 })
 
+const checklistSchema = z.object({
+  zip: z.boolean(),
+  faitiere: z.boolean(),
+  doubleToit: z.boolean(),
+  toile: z.boolean(),
+  tapis: z.boolean(),
+  sardines: z.boolean(),
+  sacTente: z.boolean(),
+})
+
 export const tentsRouter = t.router({
   getAll: authedProcedure.query(async ({ ctx }) => {
     const { session, prisma } = ctx
@@ -76,6 +86,19 @@ export const tentsRouter = t.router({
         return await prisma.tent.update({
           where: { id: input.id },
           data: { state: "EN_REPARATION" },
+        })
+      } catch (error) { handleError(error) }
+    }),
+
+  // Mutation publique pour synchroniser la checklist des éléments manquants
+  updateChecklist: t.procedure
+    .input(z.object({ id: z.string(), checklist: checklistSchema }))
+    .mutation(async ({ ctx, input }) => {
+      const { prisma } = ctx
+      try {
+        return await prisma.tent.update({
+          where: { id: input.id },
+          data: { comments: JSON.stringify(input.checklist) },
         })
       } catch (error) { handleError(error) }
     }),
