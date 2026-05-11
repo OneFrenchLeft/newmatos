@@ -2,7 +2,7 @@ import { trpc } from "@/utils/trpc"
 import Head from "next/head"
 import { useRouter } from "next/router"
 import { QRCodeCanvas } from "qrcode.react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { toast } from "react-hot-toast"
 
 const unitLabels: Record<string, string> = {
@@ -13,7 +13,6 @@ const unitLabels: Record<string, string> = {
   COMPAGNONS: "Compagnons",
   RESPONSABLES: "Responsables",
   GROUPE: "Non attribuée",
-  // Anciennes valeurs pour rétrocompatibilité
   LOUVETEAUX: "Louveteaux",
   JEANNETTES: "Jeannettes",
   SCOUTS: "Scouts",
@@ -48,10 +47,33 @@ const ITEM_LABELS: Record<string, string> = {
   sacTente: "Sac de tentes",
 }
 
-const STORAGE_KEY = "ce-qui-manque"
+const CHECKLIST_KEYS = Object.keys(ITEM_LABELS)
 
-type MissingItems = Record<string, boolean>
-type MissingState = Record<string, MissingItems>
+type Checklist = Record<string, boolean>
+
+/** Parse le champ comments s'il contient un JSON checklist, sinon retourne null */
+function parseChecklist(comments: string | null | undefined): Checklist | null {
+  if (!comments) return null
+  try {
+    const parsed = JSON.parse(comments)
+    if (typeof parsed === "object" && parsed !== null && "zip" in parsed) {
+      return parsed as Checklist
+    }
+  } catch { /* pas du JSON */ }
+  return null
+}
+
+/** Retourne le commentaire texte uniquement si ce n'est PAS un JSON checklist */
+function getRealComment(comments: string | null | undefined): string | null {
+  if (!comments) return null
+  try {
+    const parsed = JSON.parse(comments)
+    if (typeof parsed === "object" && parsed !== null && "zip" in parsed) return null
+  } catch { /* pas du JSON = vrai commentaire */ }
+  return comments
+}
+
+const DEFAULT_CHECKLIST: Checklist = Object.fromEntries(CHECKLIST_KEYS.map((k) => [k, false]))
 
 export default function PublicTentPage() {
   const router = useRouter()
@@ -59,11 +81,39 @@ export default function PublicTentPage() {
 
   const { data: tent, isLoading, refetch } = trpc.tents.getPublic.useQuery(tentId, {
     enabled: !!tentId,
+    refetchInterval: 15_000,
+    refetchIntervalInBackground: false,
   })
 
   const { data: loans, refetch: refetchLoans } = trpc.loans.getPublicHistory.useQuery(tentId, {
     enabled: !!tentId,
   })
+
+  // Checklist locale, initialisée depuis la BDD dès que tent est chargé
+  const [checklist, setChecklist] = useState<Checklist>(DEFAULT_CHECKLIST)
+  const [checklistReady, setChecklistReady] = useState(false)
+
+  useEffect(() => {
+    if (!tent) return
+    const fromDb = parseChecklist(tent.comments)
+    setChecklist(fromDb ?? DEFAULT_CHECKLIST)
+    setChecklistReady(true)
+  }, [tent?.comments])
+
+  const updateChecklistMutation = trpc.tents.updateChecklist.useMutation({
+    onSuccess: () => void refetch(),
+    onError: () => toast.error("Erreur lors de la sauvegarde"),
+  })
+
+  const toggleItem = (key: string) => {
+    if (!tentId || !checklistReady) return
+    const next = { ...checklist, [key]: !checklist[key] }
+    setChecklist(next)
+    updateChecklistMutation.mutate({
+      id: tentId,
+      checklist: next as Parameters<typeof updateChecklistMutation.mutate>[0]["checklist"],
+    })
+  }
 
   const createLoanMutation = trpc.loans.create.useMutation({
     onSuccess: () => {
@@ -80,29 +130,6 @@ export default function PublicTentPage() {
   const [showLoanForm, setShowLoanForm] = useState(false)
   const [selectedUnit, setSelectedUnit] = useState("")
   const [note, setNote] = useState("")
-
-  // Ce qui manque — state local sessionStorage
-  const [missingState, setMissingState] = useState<MissingState>(() => {
-    if (typeof window === "undefined") return {}
-    try {
-      const saved = sessionStorage.getItem(STORAGE_KEY)
-      return saved ? (JSON.parse(saved) as MissingState) : {}
-    } catch { return {} }
-  })
-
-  const toggleMissing = (field: string) => {
-    if (!tentId) return
-    setMissingState((prev) => {
-      const updated = {
-        ...prev,
-        [tentId]: { ...(prev[tentId] ?? {}), [field]: !(prev[tentId]?.[field] ?? false) },
-      }
-      try { sessionStorage.setItem(STORAGE_KEY, JSON.stringify(updated)) } catch { /* ignore */ }
-      return updated
-    })
-  }
-
-  const getMissing = (): MissingItems => missingState[tentId] ?? {}
 
   const pageUrl = typeof window !== "undefined" ? window.location.href : ""
 
@@ -128,6 +155,8 @@ export default function PublicTentPage() {
 
   const activeLoan = loans?.find((l) => !l.returnedAt)
   const loanHistory = loans ?? []
+  const realComment = getRealComment(tent.comments)
+  const missingCount = Object.values(checklist).filter(Boolean).length
 
   return (
     <div className="min-h-screen bg-slate-50 px-4 py-8">
@@ -187,36 +216,40 @@ export default function PublicTentPage() {
               <dt className="font-medium text-slate-600">Complète</dt>
               <dd className="font-semibold text-slate-900">{tent.complete ? "Oui" : "Non"}</dd>
             </div>
-            {tent.comments && (
+            {realComment && (
               <div className="flex justify-between">
                 <dt className="font-medium text-slate-600">Commentaire</dt>
-                <dd className="max-w-[55%] text-right font-semibold text-slate-900">{tent.comments}</dd>
+                <dd className="max-w-[55%] text-right font-semibold text-slate-900">{realComment}</dd>
               </div>
             )}
           </dl>
         </div>
 
-        {/* Ce qui manque */}
+        {/* Ce qui manque — synchronisé avec la BDD */}
         <div className="rounded-2xl bg-white p-6 shadow-sm">
           <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-slate-400">
             Ce qui manque
           </h2>
           <div className="space-y-2">
             {Object.entries(ITEM_LABELS).map(([key, label]) => (
-              <label key={key} className="flex cursor-pointer items-center gap-3 rounded-lg p-2 transition hover:bg-slate-50">
+              <label
+                key={key}
+                className="flex cursor-pointer items-center gap-3 rounded-lg p-2 transition hover:bg-slate-50"
+              >
                 <input
                   type="checkbox"
-                  checked={getMissing()[key] ?? false}
-                  onChange={() => toggleMissing(key)}
+                  checked={checklist[key] ?? false}
+                  onChange={() => toggleItem(key)}
                   className="h-4 w-4 rounded accent-emerald-600"
+                  disabled={!checklistReady || updateChecklistMutation.isLoading}
                 />
                 <span className="text-sm font-medium text-slate-700">{label}</span>
               </label>
             ))}
           </div>
-          {Object.values(getMissing()).some(Boolean) && (
-            <p className="mt-3 text-xs text-amber-600 font-medium">
-              ⚠️ {Object.values(getMissing()).filter(Boolean).length} élément(s) manquant(s) noté(s)
+          {missingCount > 0 && (
+            <p className="mt-3 text-xs font-medium text-amber-600">
+              ⚠️ {missingCount} élément{missingCount > 1 ? "s" : ""} manquant{missingCount > 1 ? "s" : ""} noté{missingCount > 1 ? "s" : ""}
             </p>
           )}
         </div>
