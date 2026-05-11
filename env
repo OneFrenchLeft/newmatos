@@ -1,0 +1,16 @@
+
+MYSQL_ROOT_PASSWORD=changeme_root
+MYSQL_USER=monmatos
+MYSQL_PASSWORD=changeme_app
+
+# openssl rand -base64 32
+NEXTAUTH_SECRET=replace_with_a_strong_random_secret
+
+NEXTAUTH_URL=http://localhost:3000
+NEXT_PUBLIC_URL=http://localhost:3000
+NEXT_PUBLIC_APP_URL=http://app.localhost:3000
+
+MAIL_USER=monadressemail@exemple.com
+MAIL_PASS=your_gmail_app_password
+
+PORT=3000

@@ -1,0 +1,12 @@
+node_modules
+.next
+.git
+*.log
+.env
+.env.local
+.env*.local
+README.md
+.DS_Store
+coverage
+/prisma/db.sqlite
+/prisma/db.sqlite-journal
