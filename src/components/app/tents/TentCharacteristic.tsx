@@ -10,7 +10,7 @@ export type recordableKeyOf<T> = {
 const stateLabels: Record<string, string> = {
   INUTILISABLE: "Inutilisable",
   MAUVAIS: "Mauvais",
-  EN_REPARATION: "En r\u00e9paration",
+  EN_REPARATION: "En réparation",
   BON: "Bon",
   NEUF: "Neuf",
 }
