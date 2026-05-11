@@ -22,7 +22,7 @@ const MISSING_LABELS: Record<string, string> = {
   missingSacTente:   "Sac",
 }
 
-const MISSING_KEYS = Object.keys(MISSING_LABELS) as (keyof typeof MISSING_LABELS)[]
+const MISSING_KEYS = Object.keys(MISSING_LABELS)
 
 function parseInspectionHistory(raw: string | null | undefined): string[] {
   if (!raw) return []
@@ -59,11 +59,10 @@ const TentCard: FC<UIProps<{ tent: Tent }>> = ({ tent }) => {
   const isProblematic = !complete || state === "EN_REPARATION"
   const circleBorder = isProblematic ? "border-red-500" : "border-slate-800"
 
-  // Éléments manquants depuis les booléens dédiés
-  const missingKeys = MISSING_KEYS.filter((k) => (tent as unknown as Record<string, unknown>)[k] === true)
+  const tentRecord = tent as unknown as Record<string, unknown>
+  const missingKeys = MISSING_KEYS.filter((k) => tentRecord[k] === true)
 
-  // Dernier contrôle
-  const inspections = parseInspectionHistory((tent as unknown as Record<string, unknown>).inspectionHistory as string | null)
+  const inspections = parseInspectionHistory(tentRecord.inspectionHistory as string | null)
   const lastInspection = inspections.length > 0
     ? new Date(inspections[inspections.length - 1] as string).toLocaleDateString("fr-FR")
     : null
@@ -82,16 +81,14 @@ const TentCard: FC<UIProps<{ tent: Tent }>> = ({ tent }) => {
             {size < 6 && <p className="text-xs text-slate-500">{integrated ? "Intégrée" : "Non intégrée"}</p>}
             {!complete && <p className="text-xs font-semibold text-red-500">Incomplète</p>}
             {state === "EN_REPARATION" && <p className="text-xs font-semibold text-red-500">En réparation</p>}
-            {/* Dernier contrôle */}
             {lastInspection ? (
-              <p className="text-xs text-emerald-600 font-medium">🗓️ Contrôle : {lastInspection}</p>
+              <p className="text-xs text-emerald-600 font-medium">🗓️ {lastInspection}</p>
             ) : (
               <p className="text-xs text-slate-400">Jamais contrôlée</p>
             )}
           </div>
         </div>
 
-        {/* Éléments manquants */}
         {missingKeys.length > 0 && (
           <div className="flex flex-wrap gap-1">
             {missingKeys.map((k) => (

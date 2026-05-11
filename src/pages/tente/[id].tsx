@@ -37,7 +37,6 @@ const stateColors: Record<string, string> = {
   INUTILISABLE: "bg-red-500",
 }
 
-// Clés des booléens en BDD → label affiché
 const ITEM_LABELS: Record<string, string> = {
   missingZip:        "Zip",
   missingFaitiere:   "Faitière",
@@ -79,6 +78,17 @@ function parseInspectionHistory(raw: string | null | undefined): string[] {
   return []
 }
 
+/** Retourne null si le commentaire est du JSON (legacy checklist) */
+function getRealComment(comments: string | null | undefined): string | null {
+  if (!comments) return null
+  try {
+    JSON.parse(comments)
+    return null // c'est du JSON => on cache
+  } catch {
+    return comments // c'est du texte libre => on affiche
+  }
+}
+
 export default function PublicTentPage() {
   const router = useRouter()
   const tentId = typeof router.query.id === "string" ? router.query.id : ""
@@ -93,14 +103,13 @@ export default function PublicTentPage() {
     enabled: !!tentId,
   })
 
-  // Checklist depuis les booléens directs de la BDD
   const [checklist, setChecklist] = useState<Checklist>(DEFAULT_CHECKLIST)
   const [checklistReady, setChecklistReady] = useState(false)
 
   useEffect(() => {
     if (!tent) return
     const t = tent as unknown as Record<string, unknown>
-    const loaded: Checklist = {
+    setChecklist({
       missingZip:        typeof t.missingZip === "boolean"        ? t.missingZip        : false,
       missingFaitiere:   typeof t.missingFaitiere === "boolean"   ? t.missingFaitiere   : false,
       missingDoubleToit: typeof t.missingDoubleToit === "boolean" ? t.missingDoubleToit : false,
@@ -108,8 +117,7 @@ export default function PublicTentPage() {
       missingTapis:      typeof t.missingTapis === "boolean"      ? t.missingTapis      : false,
       missingSardines:   typeof t.missingSardines === "boolean"   ? t.missingSardines   : false,
       missingSacTente:   typeof t.missingSacTente === "boolean"   ? t.missingSacTente   : false,
-    }
-    setChecklist(loaded)
+    })
     setChecklistReady(true)
   }, [
     (tent as unknown as Record<string, unknown>)?.missingZip,
@@ -133,7 +141,6 @@ export default function PublicTentPage() {
     updateChecklistMutation.mutate({ id: tentId, checklist: next })
   }
 
-  // Historique de contrôle
   const [inspections, setInspections] = useState<string[]>([])
   const [editingIdx, setEditingIdx] = useState<number | null>(null)
   const [editValue, setEditValue] = useState("")
@@ -152,7 +159,6 @@ export default function PublicTentPage() {
   const addTodayInspection = () => {
     if (!tentId) return
     const today = new Date().toISOString().slice(0, 10)
-    // Garde seulement les 2 dernières + la nouvelle
     const next = [...inspections, today].slice(-2)
     setInspections(next)
     updateInspectionMutation.mutate({ id: tentId, dates: next })
@@ -209,6 +215,7 @@ export default function PublicTentPage() {
   const activeLoan = loans?.find((l) => !l.returnedAt)
   const loanHistory = loans ?? []
   const missingCount = Object.values(checklist).filter(Boolean).length
+  const realComment = getRealComment(tent.comments)
 
   return (
     <div className="min-h-screen bg-slate-50 px-4 py-8">
@@ -231,16 +238,11 @@ export default function PublicTentPage() {
               <h1 className="text-2xl font-bold text-slate-800">
                 Tente {tent.identifyingLabel}
               </h1>
-              <span
-                className={`mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-semibold text-white ${
-                  stateColors[tent.state] ?? "bg-slate-400"
-                }`}
-              >
+              <span className={`mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-semibold text-white ${stateColors[tent.state] ?? "bg-slate-400"}`}>
                 {stateLabels[tent.state] ?? tent.state}
               </span>
             </div>
           </div>
-          {/* Dernier contrôle sous le popup tente */}
           <div className="mt-4 rounded-xl bg-slate-50 px-4 py-2 text-xs text-slate-500 flex items-center gap-2">
             <span>🗓️</span>
             {inspections.length > 0
@@ -250,7 +252,7 @@ export default function PublicTentPage() {
           </div>
         </div>
 
-        {/* Details */}
+        {/* Caractéristiques */}
         <div className="rounded-2xl bg-white p-6 shadow-sm">
           <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-slate-400">
             Caractéristiques
@@ -276,10 +278,11 @@ export default function PublicTentPage() {
               <dt className="font-medium text-slate-600">Complète</dt>
               <dd className="font-semibold text-slate-900">{tent.complete ? "Oui" : "Non"}</dd>
             </div>
-            {tent.comments && (
+            {/* Commentaire : affiché seulement si c'est du texte libre (pas du JSON legacy) */}
+            {realComment && (
               <div className="flex justify-between">
                 <dt className="font-medium text-slate-600">Commentaire</dt>
-                <dd className="max-w-[55%] text-right font-semibold text-slate-900">{tent.comments}</dd>
+                <dd className="max-w-[55%] text-right font-semibold text-slate-900">{realComment}</dd>
               </div>
             )}
           </dl>
@@ -305,28 +308,15 @@ export default function PublicTentPage() {
                       onChange={(e) => setEditValue(e.target.value)}
                       className="rounded-lg border border-slate-200 px-2 py-1 text-sm outline-none focus:border-emerald-500"
                     />
-                    <button
-                      onClick={() => saveEdit(idx)}
-                      className="rounded-lg bg-emerald-600 px-3 py-1 text-xs font-semibold text-white hover:bg-emerald-700"
-                    >
-                      OK
-                    </button>
-                    <button
-                      onClick={() => setEditingIdx(null)}
-                      className="text-xs text-slate-400 hover:text-slate-600"
-                    >
-                      Annuler
-                    </button>
+                    <button onClick={() => saveEdit(idx)} className="rounded-lg bg-emerald-600 px-3 py-1 text-xs font-semibold text-white hover:bg-emerald-700">OK</button>
+                    <button onClick={() => setEditingIdx(null)} className="text-xs text-slate-400 hover:text-slate-600">Annuler</button>
                   </>
                 ) : (
                   <>
                     <span className="text-sm font-medium text-slate-700">
                       {new Date(date).toLocaleDateString("fr-FR")}
                     </span>
-                    <button
-                      onClick={() => { setEditingIdx(idx); setEditValue(date) }}
-                      className="text-xs text-slate-400 hover:text-slate-600 underline"
-                    >
+                    <button onClick={() => { setEditingIdx(idx); setEditValue(date) }} className="text-xs text-slate-400 hover:text-slate-600 underline">
                       Modifier
                     </button>
                   </>
@@ -350,10 +340,7 @@ export default function PublicTentPage() {
           </h2>
           <div className="space-y-2">
             {ITEM_KEYS.map((key) => (
-              <label
-                key={key}
-                className="flex cursor-pointer items-center gap-3 rounded-lg p-2 transition hover:bg-slate-50"
-              >
+              <label key={key} className="flex cursor-pointer items-center gap-3 rounded-lg p-2 transition hover:bg-slate-50">
                 <input
                   type="checkbox"
                   checked={checklist[key as keyof Checklist]}
@@ -381,15 +368,9 @@ export default function PublicTentPage() {
             <div className="flex items-center gap-3 rounded-xl bg-amber-50 px-4 py-3">
               <span className="text-2xl">🏕️</span>
               <div>
-                <p className="font-semibold text-amber-800">
-                  {unitLabels[activeLoan.borrower] ?? activeLoan.borrower}
-                </p>
-                <p className="text-xs text-amber-600">
-                  Depuis le {new Date(activeLoan.loanedAt).toLocaleDateString("fr-FR")}
-                </p>
-                {activeLoan.note && (
-                  <p className="mt-1 text-xs italic text-amber-700">{activeLoan.note}</p>
-                )}
+                <p className="font-semibold text-amber-800">{unitLabels[activeLoan.borrower] ?? activeLoan.borrower}</p>
+                <p className="text-xs text-amber-600">Depuis le {new Date(activeLoan.loanedAt).toLocaleDateString("fr-FR")}</p>
+                {activeLoan.note && <p className="mt-1 text-xs italic text-amber-700">{activeLoan.note}</p>}
               </div>
             </div>
           ) : (
@@ -403,21 +384,14 @@ export default function PublicTentPage() {
             Enregistrer un emprunt
           </h2>
           {!showLoanForm ? (
-            <button
-              onClick={() => setShowLoanForm(true)}
-              className="w-full rounded-xl bg-emerald-600 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700 active:scale-[0.98]"
-            >
+            <button onClick={() => setShowLoanForm(true)} className="w-full rounded-xl bg-emerald-600 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700 active:scale-[0.98]">
               + Nouvelle sortie
             </button>
           ) : (
             <div className="space-y-4">
               <div>
                 <label className="mb-1 block text-xs font-medium text-slate-600">Unité emprunteuse</label>
-                <select
-                  value={selectedUnit}
-                  onChange={(e) => setSelectedUnit(e.target.value)}
-                  className="w-full rounded-lg border border-slate-200 p-2 text-sm outline-none focus:border-emerald-500"
-                >
+                <select value={selectedUnit} onChange={(e) => setSelectedUnit(e.target.value)} className="w-full rounded-lg border border-slate-200 p-2 text-sm outline-none focus:border-emerald-500">
                   <option value="">— Choisir une unité —</option>
                   {Object.entries(unitLabels).map(([key, lbl]) => (
                     <option key={key} value={key}>{lbl}</option>
@@ -426,30 +400,13 @@ export default function PublicTentPage() {
               </div>
               <div>
                 <label className="mb-1 block text-xs font-medium text-slate-600">Note (optionnel)</label>
-                <input
-                  type="text"
-                  value={note}
-                  onChange={(e) => setNote(e.target.value)}
-                  placeholder="ex: Camp d'été 2026"
-                  className="w-full rounded-lg border border-slate-200 p-2 text-sm outline-none focus:border-emerald-500"
-                />
+                <input type="text" value={note} onChange={(e) => setNote(e.target.value)} placeholder="ex: Camp d'été 2026" className="w-full rounded-lg border border-slate-200 p-2 text-sm outline-none focus:border-emerald-500" />
               </div>
               <div className="flex gap-3">
-                <button
-                  onClick={() => setShowLoanForm(false)}
-                  className="flex-1 rounded-xl border border-slate-200 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
-                >
-                  Annuler
-                </button>
+                <button onClick={() => setShowLoanForm(false)} className="flex-1 rounded-xl border border-slate-200 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50">Annuler</button>
                 <button
                   disabled={!selectedUnit || createLoanMutation.isLoading}
-                  onClick={() =>
-                    createLoanMutation.mutate({
-                      tentId: tent.id,
-                      borrower: selectedUnit,
-                      note: note || undefined,
-                    })
-                  }
+                  onClick={() => createLoanMutation.mutate({ tentId: tent.id, borrower: selectedUnit, note: note || undefined })}
                   className="flex-1 rounded-xl bg-emerald-600 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-40"
                 >
                   {createLoanMutation.isLoading ? "Envoi..." : "Confirmer"}
@@ -472,9 +429,7 @@ export default function PublicTentPage() {
                     {loan.returnedAt ? "✓" : "→"}
                   </span>
                   <div>
-                    <p className="font-medium text-slate-800">
-                      {unitLabels[loan.borrower] ?? loan.borrower}
-                    </p>
+                    <p className="font-medium text-slate-800">{unitLabels[loan.borrower] ?? loan.borrower}</p>
                     <p className="text-xs text-slate-500">
                       {new Date(loan.loanedAt).toLocaleDateString("fr-FR")}
                       {loan.returnedAt && ` → ${new Date(loan.returnedAt).toLocaleDateString("fr-FR")}`}
@@ -489,9 +444,7 @@ export default function PublicTentPage() {
 
         {/* QR Code */}
         <div className="rounded-2xl bg-white p-6 shadow-sm">
-          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-slate-400">
-            QR Code
-          </h2>
+          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-slate-400">QR Code</h2>
           <div className="flex flex-col items-center gap-4">
             <QRCodeCanvas value={pageUrl} size={160} />
             <p className="text-center text-xs text-slate-400">Scannez pour accéder à cette page</p>
