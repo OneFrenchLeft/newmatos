@@ -6,7 +6,7 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 COPY prisma ./prisma/
 
-RUN npm install
+RUN npm install --legacy-peer-deps
 RUN npx prisma generate
 
 # --- Stage 2: builder ---------------------------------------------------------
