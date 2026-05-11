@@ -22,10 +22,10 @@ const Navbar = () => {
       <div className="mx-auto flex items-center justify-between p-4 font-medium lg:container">
         <div className="flex items-center">
           <div className="hidden lg:block">
-            <Link href="/groupe"><a><Logo /></a></Link>
+            <Link href="/groupe"><Logo /></Link>
           </div>
           <div className="lg:hidden">
-            <Link href="/groupe"><a><Logo size="sm" /></a></Link>
+            <Link href="/groupe"><Logo size="sm" /></Link>
           </div>
           <nav className="ml-10 hidden items-center gap-6 sm:flex">
             <HeaderLink label="Mon groupe" href="/groupe" />

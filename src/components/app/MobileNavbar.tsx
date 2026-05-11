@@ -28,7 +28,7 @@ const MobileNavbar = () => {
       >
         <div className="flex h-full w-full flex-col items-start">
           <div className="flex w-full items-center justify-between p-4 shadow-md">
-            <Link href="/groupe"><a><Logo size="sm" /></a></Link>
+            <Link href="/groupe"><Logo size="sm" /></Link>
             <button type="button" onClick={hideMenu}>
               <Icon name="XIcon" />
             </button>
