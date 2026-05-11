@@ -27,7 +27,7 @@ const SignInForm = ({ callbackUrl, error }: SignInFormProps) => {
 
   useEffect(() => {
     if (error) {
-      toast.error(errorMessages[error] || "Veuillez r\u00e9essayer plus tard", {
+      toast.error(errorMessages[error] || "Veuillez réessayer plus tard", {
         id: "error-message",
       })
     }
@@ -58,7 +58,7 @@ const SignInForm = ({ callbackUrl, error }: SignInFormProps) => {
             <Logo className="mb-6 pl-4" />
             <Form className="mx-auto flex flex-col gap-10 rounded-md bg-white p-5 text-slate-900 shadow-lg sm:p-10">
               <h1 className="text-2xl font-bold">
-                Connectez-vous \u00e0 votre{" "}
+                Connectez-vous à votre{" "}
                 <span className="text-emerald-600">Groupe</span>
               </h1>
               <label htmlFor="identifier" className="-mb-8 font-medium">
@@ -90,7 +90,7 @@ const SignInForm = ({ callbackUrl, error }: SignInFormProps) => {
                 {isSubmitting ? <LoadingDots /> : "Continuer"}
               </Button>
               <p className="text-sm">
-                Votre groupe n'est pas encore enregistr\u00e9 ?{" "}
+                Votre groupe n'est pas encore enregistré ?{" "}
                 <Link
                   href="/inscription"
                   className="w-fit pl-1 font-medium text-blue-500 focus:bg-blue-300/20 focus:outline-none"
@@ -103,7 +103,7 @@ const SignInForm = ({ callbackUrl, error }: SignInFormProps) => {
               href="/"
               className="mx-auto mt-10 block w-fit text-sm underline"
             >
-              Revenir \u00e0 l'accueil
+              Revenir à l'accueil
             </Link>
           </div>
         )}
@@ -115,7 +115,7 @@ const SignInForm = ({ callbackUrl, error }: SignInFormProps) => {
 const errorMessages: Record<string, string> = {
   CredentialsSignin: "Nom de groupe incorrect ou inexistant",
   SessionRequired: "Veuillez vous reconnecter",
-  GroupNotFound: "Nous n'avons pas trouv\u00e9 ce groupe",
+  GroupNotFound: "Nous n'avons pas trouvé ce groupe",
 }
 
 export default SignInForm
