@@ -51,7 +51,10 @@ const getItems = (tent: Record<string, unknown>): MissingItems => ({
 
 const CeQuiManquePage: NextPageWithLayout = () => {
   const router = useRouter()
-  const { data: tents, isLoading, refetch } = trpc.tents.getAll.useQuery()
+  const { data: tents, isLoading, refetch } = trpc.tents.getAll.useQuery(undefined, {
+    refetchInterval: 10_000,
+    refetchIntervalInBackground: false,
+  })
 
   const updateChecklistMutation = trpc.tents.updateChecklist.useMutation({
     onSettled: () => refetch(),
