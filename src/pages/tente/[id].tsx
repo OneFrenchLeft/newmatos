@@ -37,35 +37,46 @@ const stateColors: Record<string, string> = {
   INUTILISABLE: "bg-red-500",
 }
 
+// Clés des booléens en BDD → label affiché
 const ITEM_LABELS: Record<string, string> = {
-  zip: "Zip",
-  faitiere: "Faitière",
-  doubleToit: "Double toit",
-  toile: "Toile de tente",
-  tapis: "Tapis de sol",
-  sardines: "Sardines",
-  sacTente: "Sac de tentes",
+  missingZip:        "Zip",
+  missingFaitiere:   "Faitière",
+  missingDoubleToit: "Double toit",
+  missingToile:      "Toile de tente",
+  missingTapis:      "Tapis de sol",
+  missingSardines:   "Sardines",
+  missingSacTente:   "Sac de tentes",
 }
 
-const CHECKLIST_KEYS = Object.keys(ITEM_LABELS)
+const ITEM_KEYS = Object.keys(ITEM_LABELS)
 
-type Checklist = Record<string, boolean>
+type Checklist = {
+  missingZip: boolean
+  missingFaitiere: boolean
+  missingDoubleToit: boolean
+  missingToile: boolean
+  missingTapis: boolean
+  missingSardines: boolean
+  missingSacTente: boolean
+}
 
-const DEFAULT_CHECKLIST: Checklist = Object.fromEntries(CHECKLIST_KEYS.map((k) => [k, false]))
+const DEFAULT_CHECKLIST: Checklist = {
+  missingZip: false,
+  missingFaitiere: false,
+  missingDoubleToit: false,
+  missingToile: false,
+  missingTapis: false,
+  missingSardines: false,
+  missingSacTente: false,
+}
 
-function parseMissingItems(raw: string | null | undefined): Checklist {
-  if (!raw) return { ...DEFAULT_CHECKLIST }
+function parseInspectionHistory(raw: string | null | undefined): string[] {
+  if (!raw) return []
   try {
     const parsed = JSON.parse(raw)
-    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) return { ...DEFAULT_CHECKLIST }
-    const result: Checklist = { ...DEFAULT_CHECKLIST }
-    for (const k of CHECKLIST_KEYS) {
-      if (typeof parsed[k] === "boolean") result[k] = parsed[k]
-    }
-    return result
-  } catch {
-    return { ...DEFAULT_CHECKLIST }
-  }
+    if (Array.isArray(parsed)) return parsed as string[]
+  } catch { /* ignore */ }
+  return []
 }
 
 export default function PublicTentPage() {
@@ -82,14 +93,33 @@ export default function PublicTentPage() {
     enabled: !!tentId,
   })
 
-  const [checklist, setChecklist] = useState<Checklist>({ ...DEFAULT_CHECKLIST })
+  // Checklist depuis les booléens directs de la BDD
+  const [checklist, setChecklist] = useState<Checklist>(DEFAULT_CHECKLIST)
   const [checklistReady, setChecklistReady] = useState(false)
 
   useEffect(() => {
     if (!tent) return
-    setChecklist(parseMissingItems(tent.missingItems))
+    const t = tent as unknown as Record<string, unknown>
+    const loaded: Checklist = {
+      missingZip:        typeof t.missingZip === "boolean"        ? t.missingZip        : false,
+      missingFaitiere:   typeof t.missingFaitiere === "boolean"   ? t.missingFaitiere   : false,
+      missingDoubleToit: typeof t.missingDoubleToit === "boolean" ? t.missingDoubleToit : false,
+      missingToile:      typeof t.missingToile === "boolean"      ? t.missingToile      : false,
+      missingTapis:      typeof t.missingTapis === "boolean"      ? t.missingTapis      : false,
+      missingSardines:   typeof t.missingSardines === "boolean"   ? t.missingSardines   : false,
+      missingSacTente:   typeof t.missingSacTente === "boolean"   ? t.missingSacTente   : false,
+    }
+    setChecklist(loaded)
     setChecklistReady(true)
-  }, [tent?.missingItems])
+  }, [
+    (tent as unknown as Record<string, unknown>)?.missingZip,
+    (tent as unknown as Record<string, unknown>)?.missingFaitiere,
+    (tent as unknown as Record<string, unknown>)?.missingDoubleToit,
+    (tent as unknown as Record<string, unknown>)?.missingToile,
+    (tent as unknown as Record<string, unknown>)?.missingTapis,
+    (tent as unknown as Record<string, unknown>)?.missingSardines,
+    (tent as unknown as Record<string, unknown>)?.missingSacTente,
+  ])
 
   const updateChecklistMutation = trpc.tents.updateChecklist.useMutation({
     onSuccess: () => void refetch(),
@@ -98,12 +128,44 @@ export default function PublicTentPage() {
 
   const toggleItem = (key: string) => {
     if (!tentId || !checklistReady) return
-    const next = { ...checklist, [key]: !checklist[key] }
+    const next = { ...checklist, [key]: !checklist[key as keyof Checklist] }
     setChecklist(next)
-    updateChecklistMutation.mutate({
-      id: tentId,
-      checklist: next as Parameters<typeof updateChecklistMutation.mutate>[0]["checklist"],
-    })
+    updateChecklistMutation.mutate({ id: tentId, checklist: next })
+  }
+
+  // Historique de contrôle
+  const [inspections, setInspections] = useState<string[]>([])
+  const [editingIdx, setEditingIdx] = useState<number | null>(null)
+  const [editValue, setEditValue] = useState("")
+
+  useEffect(() => {
+    if (!tent) return
+    const raw = (tent as unknown as Record<string, unknown>).inspectionHistory as string | null
+    setInspections(parseInspectionHistory(raw))
+  }, [(tent as unknown as Record<string, unknown>)?.inspectionHistory])
+
+  const updateInspectionMutation = trpc.tents.updateInspectionHistory.useMutation({
+    onSuccess: () => void refetch(),
+    onError: () => toast.error("Erreur lors de la sauvegarde"),
+  })
+
+  const addTodayInspection = () => {
+    if (!tentId) return
+    const today = new Date().toISOString().slice(0, 10)
+    // Garde seulement les 2 dernières + la nouvelle
+    const next = [...inspections, today].slice(-2)
+    setInspections(next)
+    updateInspectionMutation.mutate({ id: tentId, dates: next })
+  }
+
+  const saveEdit = (idx: number) => {
+    if (!tentId || !editValue) return
+    const next = [...inspections]
+    next[idx] = editValue
+    setInspections(next)
+    updateInspectionMutation.mutate({ id: tentId, dates: next })
+    setEditingIdx(null)
+    setEditValue("")
   }
 
   const createLoanMutation = trpc.loans.create.useMutation({
@@ -178,6 +240,14 @@ export default function PublicTentPage() {
               </span>
             </div>
           </div>
+          {/* Dernier contrôle sous le popup tente */}
+          <div className="mt-4 rounded-xl bg-slate-50 px-4 py-2 text-xs text-slate-500 flex items-center gap-2">
+            <span>🗓️</span>
+            {inspections.length > 0
+              ? <span>Dernier contrôle : <strong className="text-slate-700">{new Date(inspections[inspections.length - 1] as string).toLocaleDateString("fr-FR")}</strong></span>
+              : <span className="italic">Aucun contrôle enregistré</span>
+            }
+          </div>
         </div>
 
         {/* Details */}
@@ -215,25 +285,83 @@ export default function PublicTentPage() {
           </dl>
         </div>
 
+        {/* Historique de contrôle */}
+        <div className="rounded-2xl bg-white p-6 shadow-sm">
+          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-slate-400">
+            Historique de contrôle
+          </h2>
+          <div className="space-y-2 mb-4">
+            {inspections.length === 0 && (
+              <p className="text-sm text-slate-400 italic">Aucun contrôle enregistré.</p>
+            )}
+            {inspections.map((date, idx) => (
+              <div key={idx} className="flex items-center gap-2">
+                <span className="text-slate-400 text-xs w-4">{idx + 1}.</span>
+                {editingIdx === idx ? (
+                  <>
+                    <input
+                      type="date"
+                      value={editValue}
+                      onChange={(e) => setEditValue(e.target.value)}
+                      className="rounded-lg border border-slate-200 px-2 py-1 text-sm outline-none focus:border-emerald-500"
+                    />
+                    <button
+                      onClick={() => saveEdit(idx)}
+                      className="rounded-lg bg-emerald-600 px-3 py-1 text-xs font-semibold text-white hover:bg-emerald-700"
+                    >
+                      OK
+                    </button>
+                    <button
+                      onClick={() => setEditingIdx(null)}
+                      className="text-xs text-slate-400 hover:text-slate-600"
+                    >
+                      Annuler
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-sm font-medium text-slate-700">
+                      {new Date(date).toLocaleDateString("fr-FR")}
+                    </span>
+                    <button
+                      onClick={() => { setEditingIdx(idx); setEditValue(date) }}
+                      className="text-xs text-slate-400 hover:text-slate-600 underline"
+                    >
+                      Modifier
+                    </button>
+                  </>
+                )}
+              </div>
+            ))}
+          </div>
+          <button
+            onClick={addTodayInspection}
+            disabled={updateInspectionMutation.isLoading}
+            className="w-full rounded-xl bg-emerald-600 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-40"
+          >
+            {updateInspectionMutation.isLoading ? "Enregistrement..." : "✓ Contrôlé aujourd'hui"}
+          </button>
+        </div>
+
         {/* Ce qui manque */}
         <div className="rounded-2xl bg-white p-6 shadow-sm">
           <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-slate-400">
             Ce qui manque
           </h2>
           <div className="space-y-2">
-            {Object.entries(ITEM_LABELS).map(([key, label]) => (
+            {ITEM_KEYS.map((key) => (
               <label
                 key={key}
                 className="flex cursor-pointer items-center gap-3 rounded-lg p-2 transition hover:bg-slate-50"
               >
                 <input
                   type="checkbox"
-                  checked={checklist[key] ?? false}
+                  checked={checklist[key as keyof Checklist]}
                   onChange={() => toggleItem(key)}
                   className="h-4 w-4 rounded accent-emerald-600"
                   disabled={!checklistReady || updateChecklistMutation.isLoading}
                 />
-                <span className="text-sm font-medium text-slate-700">{label}</span>
+                <span className="text-sm font-medium text-slate-700">{ITEM_LABELS[key]}</span>
               </label>
             ))}
           </div>
@@ -331,7 +459,7 @@ export default function PublicTentPage() {
           )}
         </div>
 
-        {/* Historique */}
+        {/* Historique emprunts */}
         {loanHistory.length > 0 && (
           <div className="rounded-2xl bg-white p-6 shadow-sm">
             <h2 className="mb-4 text-sm font-semibold uppercase tracking-wider text-slate-400">

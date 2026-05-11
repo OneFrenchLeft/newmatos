@@ -11,13 +11,13 @@ const repairTaskSchema = z.object({
 })
 
 const checklistSchema = z.object({
-  zip: z.boolean(),
-  faitiere: z.boolean(),
-  doubleToit: z.boolean(),
-  toile: z.boolean(),
-  tapis: z.boolean(),
-  sardines: z.boolean(),
-  sacTente: z.boolean(),
+  missingZip:        z.boolean(),
+  missingFaitiere:   z.boolean(),
+  missingDoubleToit: z.boolean(),
+  missingToile:      z.boolean(),
+  missingTapis:      z.boolean(),
+  missingSardines:   z.boolean(),
+  missingSacTente:   z.boolean(),
 })
 
 export const tentsRouter = t.router({
@@ -89,7 +89,7 @@ export const tentsRouter = t.router({
       } catch (error) { handleError(error) }
     }),
 
-  // Mutation publique — stocke la checklist dans missingItems (champ dédié)
+  // Met à jour les booléens d'éléments manquants + complete
   updateChecklist: t.procedure
     .input(z.object({ id: z.string(), checklist: checklistSchema }))
     .mutation(async ({ ctx, input }) => {
@@ -98,10 +98,20 @@ export const tentsRouter = t.router({
       try {
         return await prisma.tent.update({
           where: { id: input.id },
-          data: {
-            missingItems: JSON.stringify(input.checklist),
-            complete: !hasAnyMissing,
-          },
+          data: { ...input.checklist, complete: !hasAnyMissing },
+        })
+      } catch (error) { handleError(error) }
+    }),
+
+  // Met à jour l'historique de contrôle (tableau de dates ISO, max conservé côté client)
+  updateInspectionHistory: t.procedure
+    .input(z.object({ id: z.string(), dates: z.array(z.string()) }))
+    .mutation(async ({ ctx, input }) => {
+      const { prisma } = ctx
+      try {
+        return await prisma.tent.update({
+          where: { id: input.id },
+          data: { inspectionHistory: JSON.stringify(input.dates) },
         })
       } catch (error) { handleError(error) }
     }),

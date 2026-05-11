@@ -10,51 +10,44 @@ import { toast } from "react-hot-toast"
 import { NextPageWithLayout } from "./_app"
 
 type MissingItems = {
-  zip: boolean
-  faitiere: boolean
-  doubleToit: boolean
-  toile: boolean
-  tapis: boolean
-  sardines: boolean
-  sacTente: boolean
+  missingZip:        boolean
+  missingFaitiere:   boolean
+  missingDoubleToit: boolean
+  missingToile:      boolean
+  missingTapis:      boolean
+  missingSardines:   boolean
+  missingSacTente:   boolean
 }
 
-const ITEM_KEYS = ["zip", "faitiere", "doubleToit", "toile", "tapis", "sardines", "sacTente"] as const
+const ITEM_KEYS = [
+  "missingZip",
+  "missingFaitiere",
+  "missingDoubleToit",
+  "missingToile",
+  "missingTapis",
+  "missingSardines",
+  "missingSacTente",
+] as const
 
-const defaultItems = (): MissingItems => ({
-  zip: false,
-  faitiere: false,
-  doubleToit: false,
-  toile: false,
-  tapis: false,
-  sardines: false,
-  sacTente: false,
+const ITEM_LABELS: Record<typeof ITEM_KEYS[number], string> = {
+  missingZip:        "Zip",
+  missingFaitiere:   "Faitière",
+  missingDoubleToit: "Double toit",
+  missingToile:      "Toile de tente",
+  missingTapis:      "Tapis de sol",
+  missingSardines:   "Sardines",
+  missingSacTente:   "Sac de tentes",
+}
+
+const getItems = (tent: Record<string, unknown>): MissingItems => ({
+  missingZip:        typeof tent.missingZip === "boolean"        ? tent.missingZip        : false,
+  missingFaitiere:   typeof tent.missingFaitiere === "boolean"   ? tent.missingFaitiere   : false,
+  missingDoubleToit: typeof tent.missingDoubleToit === "boolean" ? tent.missingDoubleToit : false,
+  missingToile:      typeof tent.missingToile === "boolean"      ? tent.missingToile      : false,
+  missingTapis:      typeof tent.missingTapis === "boolean"      ? tent.missingTapis      : false,
+  missingSardines:   typeof tent.missingSardines === "boolean"   ? tent.missingSardines   : false,
+  missingSacTente:   typeof tent.missingSacTente === "boolean"   ? tent.missingSacTente   : false,
 })
-
-const ITEM_LABELS: Record<keyof MissingItems, string> = {
-  zip: "Zip",
-  faitiere: "Faitière",
-  doubleToit: "Double toit",
-  toile: "Toile de tente",
-  tapis: "Tapis de sol",
-  sardines: "Sardines",
-  sacTente: "Sac de tentes",
-}
-
-const getItems = (tent: { missingItems: string | null }): MissingItems => {
-  if (!tent.missingItems) return defaultItems()
-  try {
-    const parsed = JSON.parse(tent.missingItems)
-    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) return defaultItems()
-    const result = defaultItems()
-    for (const k of ITEM_KEYS) {
-      if (typeof parsed[k] === "boolean") result[k] = parsed[k]
-    }
-    return result
-  } catch {
-    return defaultItems()
-  }
-}
 
 const CeQuiManquePage: NextPageWithLayout = () => {
   const router = useRouter()
@@ -74,8 +67,8 @@ const CeQuiManquePage: NextPageWithLayout = () => {
     }
   }, [tents])
 
-  const toggle = (tent: NonNullable<typeof tents>[number], field: keyof MissingItems) => {
-    const current = getItems(tent)
+  const toggle = (tent: NonNullable<typeof tents>[number], field: typeof ITEM_KEYS[number]) => {
+    const current = getItems(tent as unknown as Record<string, unknown>)
     const updated: MissingItems = { ...current, [field]: !current[field] }
     updateChecklistMutation.mutate({ id: tent.id, checklist: updated })
   }
@@ -85,7 +78,7 @@ const CeQuiManquePage: NextPageWithLayout = () => {
   )
 
   const missingCount = sortedTents.filter((tent) => {
-    const items = getItems(tent)
+    const items = getItems(tent as unknown as Record<string, unknown>)
     return Object.values(items).some(Boolean)
   }).length
 
@@ -126,14 +119,14 @@ const CeQuiManquePage: NextPageWithLayout = () => {
                 <tr className="border-b border-slate-200 bg-slate-50 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
                   <th className="px-4 py-3">Tente</th>
                   <th className="px-4 py-3 text-center">État</th>
-                  {(Object.keys(ITEM_LABELS) as (keyof MissingItems)[]).map((key) => (
+                  {ITEM_KEYS.map((key) => (
                     <th key={key} className="px-3 py-3 text-center">{ITEM_LABELS[key]}</th>
                   ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {sortedTents.map((tent) => {
-                  const items = getItems(tent)
+                  const items = getItems(tent as unknown as Record<string, unknown>)
                   const hasIssue = Object.values(items).some(Boolean)
                   const isHighlighted = tent.id === highlightId
                   return (
@@ -168,13 +161,13 @@ const CeQuiManquePage: NextPageWithLayout = () => {
                           {stateLabels[tent.state]}
                         </span>
                       </td>
-                      {(Object.keys(ITEM_LABELS) as (keyof MissingItems)[]).map((field) => (
+                      {ITEM_KEYS.map((field) => (
                         <td key={field} className="px-3 py-3 text-center">
                           <label className="inline-flex cursor-pointer items-center justify-center">
                             <input
                               type="checkbox"
-                              checked={items[field as keyof MissingItems]}
-                              onChange={() => toggle(tent, field as keyof MissingItems)}
+                              checked={items[field]}
+                              onChange={() => toggle(tent, field)}
                               className="h-5 w-5 cursor-pointer accent-red-500"
                               disabled={updateChecklistMutation.isLoading}
                             />
