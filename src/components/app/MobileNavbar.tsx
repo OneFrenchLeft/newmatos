@@ -13,9 +13,7 @@ const MobileNavbar = () => {
   const showMenu = () => setVisible(true)
   const hideMenu = () => setVisible(false)
 
-  useEffect(() => {
-    hideMenu()
-  }, [router])
+  useEffect(() => { hideMenu() }, [router])
 
   return (
     <div className="flex items-center lg:hidden">
@@ -25,57 +23,20 @@ const MobileNavbar = () => {
       <div
         className={classNames(
           "bg-main fixed top-0 left-0 bottom-0 z-50 w-[280px] max-w-[100vw] overflow-y-scroll overscroll-contain text-lg shadow-xl transition-transform duration-500",
-          {
-            "-translate-x-full": !visible,
-            "translate-x-0": visible,
-          },
+          { "-translate-x-full": !visible, "translate-x-0": visible },
         )}
       >
         <div className="flex h-full w-full flex-col items-start">
           <div className="flex w-full items-center justify-between p-4 shadow-md">
-            <Link href="/groupe">
-              <a>
-                <Logo size="sm" />
-              </a>
-            </Link>
-
+            <Link href="/groupe"><a><Logo size="sm" /></a></Link>
             <button type="button" onClick={hideMenu}>
               <Icon name="XIcon" />
             </button>
           </div>
-
           <nav className="flex flex-col items-start space-y-3 p-6">
             <HeaderLink label="Mon groupe" href="/groupe" icon="FaChurch" />
-            <HeaderLink label="Mes tentes" href="tentes" icon="FaCampground" />
-            <HeaderLink
-              label="Ce qui manque"
-              href="/ce-qui-manque"
-              icon="MdOutlineErrorOutline"
-            />
-            <HeaderLink
-              label="FAQ"
-              href="/foire-aux-questions"
-              target="_blank"
-              icon="RiQuestionnaireFill"
-            />
-            <HeaderLink
-              label="Tutoriels"
-              href="/tutoriels"
-              target="_blank"
-              icon="FaGraduationCap"
-            />
-            <HeaderLink
-              label="Nous contacter"
-              href="/contact"
-              target="_blank"
-              icon="HiMail"
-            />
-            <HeaderLink
-              label="Nous soutenir"
-              href="/nous-soutenir"
-              target="_blank"
-              icon="HiHeart"
-            />
+            <HeaderLink label="Mes tentes" href="/tentes" icon="FaCampground" />
+            <HeaderLink label="Ce qui manque" href="/ce-qui-manque" icon="MdOutlineErrorOutline" />
             <button
               className="flex items-center gap-2 text-red-600 transition-colors"
               onClick={() => signOut({ callbackUrl: "/connexion" })}
@@ -89,10 +50,7 @@ const MobileNavbar = () => {
       <div
         className={classNames(
           "fixed inset-0 z-40 bg-slate-900/50 transition-all duration-500",
-          {
-            "invisible opacity-0": !visible,
-            "visible opacity-100": visible,
-          },
+          { "invisible opacity-0": !visible, "visible opacity-100": visible },
         )}
         onClick={hideMenu}
       />

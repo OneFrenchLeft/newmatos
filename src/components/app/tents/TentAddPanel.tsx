@@ -1,4 +1,3 @@
-// Importation des composants, hooks et utilitaires nécessaires
 import { Modal } from "@/components/app/modal"
 import { useModalContext } from "@/components/hooks/useModalContext"
 import Button from "@/components/ui/Button"
@@ -15,12 +14,10 @@ import { toast } from "react-hot-toast"
 import TentInput from "./TentInput"
 import { getTentsErrorMessage } from "./tentsErrorMessage"
 
-// Définition du composant principal TentAddPanel
 const TentAddPanel: FC<UIProps<{ tents: Tents }>> = ({ tents }) => {
   const { setModal } = useModalContext()
   const trpcCtx = trpc.useContext()
 
-  // Mutation pour créer une tente via TRPC
   const createMutation = trpc.tents.create.useMutation({
     onSuccess() {
       setModal({} as Modal)
@@ -33,8 +30,11 @@ const TentAddPanel: FC<UIProps<{ tents: Tents }>> = ({ tents }) => {
     },
   })
 
-  const existingNums = (tents ?? []).map((tent) => tent.identifyingNum)
-  const [identifyingNum, setIdentifyingNum] = useState<string>("")
+  const existingLabels = (tents ?? []).map((t) =>
+    t.identifyingLabel.trim().toLowerCase(),
+  )
+
+  const [label, setLabel] = useState("")
   const [state, setState] = useState<State>("NEUF")
   const [size, setSize] = useState(6)
   const [complete, setComplete] = useState(true)
@@ -45,17 +45,16 @@ const TentAddPanel: FC<UIProps<{ tents: Tents }>> = ({ tents }) => {
 
   const closePanel = () => setModal({} as Modal)
 
-  const parsedNum = parseInt(identifyingNum)
-  const numAlreadyUsed = existingNums.includes(parsedNum)
-  const numValid = !isNaN(parsedNum) && parsedNum > 0 && !numAlreadyUsed
+  const trimmed = label.trim()
+  const alreadyUsed = existingLabels.includes(trimmed.toLowerCase())
+  const labelValid = trimmed.length > 0 && !alreadyUsed
 
   const handleAdd = async (e: FormEvent) => {
     e.preventDefault()
-
-    if (!numValid) return
+    if (!labelValid) return
 
     const createPromise = createMutation.mutateAsync({
-      identifyingNum: parsedNum,
+      identifyingLabel: trimmed,
       state,
       size,
       complete,
@@ -70,8 +69,8 @@ const TentAddPanel: FC<UIProps<{ tents: Tents }>> = ({ tents }) => {
         error: getTentsErrorMessage,
         loading: "Ajout en cours ...",
       })
-    } catch (error) {
-      // handled by mutation
+    } catch {
+      // handled above
     }
   }
 
@@ -80,32 +79,26 @@ const TentAddPanel: FC<UIProps<{ tents: Tents }>> = ({ tents }) => {
       <Head>
         <title>Ajouter une tente | MonMatos</title>
       </Head>
-
-      <form
-        className="mx-auto max-w-[450px] space-y-6 py-4"
-        onSubmit={handleAdd}
-      >
-        {/* Identifiant numérique de la tente */}
+      <form className="mx-auto max-w-[450px] space-y-6 py-4" onSubmit={handleAdd}>
+        {/* Identifiant */}
         <div
           className={classNames(
             "mx-auto flex h-28 w-28 items-center justify-center rounded-full border-4",
             {
-              "border-slate-800 text-slate-800": !identifyingNum,
-              "border-emerald-500/90 text-emerald-500/90":
-                identifyingNum && numValid,
-              "border-red-500/90 text-red-500/90":
-                identifyingNum && !numValid,
+              "border-slate-800 text-slate-800": !trimmed,
+              "border-emerald-500/90 text-emerald-500/90": trimmed && labelValid,
+              "border-red-500/90 text-red-500/90": trimmed && !labelValid,
             },
           )}
         >
           <input
-            type="number"
+            type="text"
             autoFocus
-            min={1}
-            className="w-[90px] rounded-lg border-2 border-dashed bg-transparent p-1 px-2 text-center text-3xl font-bold outline-none"
-            placeholder={"0"}
-            onChange={(e) => setIdentifyingNum(e.target.value)}
-            value={identifyingNum}
+            className="w-[90px] rounded-lg border-2 border-dashed bg-transparent p-1 px-2 text-center text-lg font-bold outline-none"
+            placeholder="Ex: 1 ou Bretagne"
+            onChange={(e) => setLabel(e.target.value)}
+            value={label}
+            maxLength={20}
           />
         </div>
 
@@ -114,14 +107,18 @@ const TentAddPanel: FC<UIProps<{ tents: Tents }>> = ({ tents }) => {
             className={classNames(
               "mx-auto flex w-fit items-center space-x-2 rounded-lg py-1 px-2 text-sm font-medium sm:text-base",
               {
-                "bg-amber-100 text-amber-800": !identifyingNum,
-                "bg-green-100 text-green-800": identifyingNum && numValid,
-                "bg-red-100 text-red-800": identifyingNum && !numValid,
+                "bg-amber-100 text-amber-800": !trimmed,
+                "bg-green-100 text-green-800": trimmed && labelValid,
+                "bg-red-100 text-red-800": trimmed && !labelValid,
               },
             )}
           >
             <Icon name="MdOutlineErrorOutline" className="text-xl" />
-            <span>Choisissez un numéro de tente non attribué</span>
+            <span>
+              {alreadyUsed
+                ? "Cet identifiant est déjà utilisé"
+                : "Choisissez un identifiant unique (chiffre ou nom)"}
+            </span>
           </div>
         </div>
 
@@ -131,108 +128,19 @@ const TentAddPanel: FC<UIProps<{ tents: Tents }>> = ({ tents }) => {
         </div>
 
         <div className="space-y-2">
-          {/* Taille */}
-          <TentInput
-            label="Taille"
-            value={size.toString()}
-            setValue={(value) => setSize(parseInt(value as string))}
-            options={[
-              ["0", "N'accueille pas de personne"],
-              ["1", "1 place"],
-              ["2", "2 places"],
-              ["3", "3 places"],
-              ["4", "4 places"],
-              ["5", "5 places"],
-              ["6", "6 places"],
-              ["8", "8 places"],
-            ]}
-          />
-
-          {/* État */}
-          <TentInput
-            label="ÉTAT"
-            value={state}
-            setValue={(value) => setState(value as State)}
-            options={Object.entries(State).map(([key, value]) => [
-              key as State,
-              value,
-            ])}
-          />
-
-          {/* Complète */}
-          <TentInput
-            label="Complète ?"
-            value={complete ? "OUI" : "NON"}
-            setValue={(value) => setComplete(value === "OUI")}
-            options={[
-              ["OUI", "OUI"],
-              ["NON", "NON"],
-            ]}
-          />
-
-          {/* Type */}
-          <TentInput
-            label="TYPE"
-            value={type}
-            setValue={(value) => setType(value)}
-            options={[
-              ["CANADIENNE", "CANADIENNE"],
-              ["QUECHUA", "QUECHUA"],
-              ["MARABOUT", "MARABOUT"],
-            ]}
-          />
-
-          {/* Tapis de sol */}
-          <TentInput
-            label="Tapis de sol"
-            value={integrated ? "INTÉGRÉ" : "NORMAL"}
-            setValue={(value) => setIntegrated(value === "INTÉGRÉ")}
-            options={[
-              ["INTÉGRÉ", "INTÉGRÉ"],
-              ["NORMAL", "NORMAL"],
-            ]}
-          />
-
-          {/* Nombre de piquets */}
-          <TentInput
-            label="Piquets"
-            value={pegs.toString()}
-            setValue={(value) => setPegs(parseInt(value as string))}
-            options={Array.from({ length: 21 }, (_, i) => [
-              i.toString(),
-              i === 0 ? "0 piquet" : `${i} piquet${i > 1 ? "s" : ""}`,
-            ] as [string, string])}
-          />
+          <TentInput label="Taille" value={size.toString()} setValue={(v) => setSize(parseInt(v as string))} options={[["0","N'accueille pas de personne"],["1","1 place"],["2","2 places"],["3","3 places"],["4","4 places"],["5","5 places"],["6","6 places"],["8","8 places"]]} />
+          <TentInput label="ÉTAT" value={state} setValue={(v) => setState(v as State)} options={Object.entries(State).map(([k, v]) => [k as State, v])} />
+          <TentInput label="Complète ?" value={complete ? "OUI" : "NON"} setValue={(v) => setComplete(v === "OUI")} options={[["OUI","OUI"],["NON","NON"]]} />
+          <TentInput label="TYPE" value={type} setValue={setType} options={[["CANADIENNE","CANADIENNE"],["QUECHUA","QUECHUA"],["MARABOUT","MARABOUT"]]} />
+          <TentInput label="Tapis de sol" value={integrated ? "INTÉGRÉ" : "NORMAL"} setValue={(v) => setIntegrated(v === "INTÉGRÉ")} options={[["INTÉGRÉ","INTÉGRÉ"],["NORMAL","NORMAL"]]} />
+          <TentInput label="Piquets" value={pegs.toString()} setValue={(v) => setPegs(parseInt(v as string))} options={Array.from({ length: 21 }, (_, i) => [i.toString(), i === 0 ? "0 piquet" : `${i} piquet${i > 1 ? "s" : ""}`] as [string, string])} />
         </div>
 
-        <Textarea
-          label="Commentaires"
-          value={comments}
-          onChange={(e) => setComments(e.target.value)}
-        />
+        <Textarea label="Commentaires" value={comments} onChange={(e) => setComments(e.target.value)} />
 
         <div className="flex flex-wrap items-center justify-center gap-8">
-          <Button
-            type="button"
-            onClick={closePanel}
-            size="sm"
-            icon="HiArrowLeft"
-            variant="white"
-            className="max-w-fit"
-          >
-            Annuler
-          </Button>
-          <Button
-            type="submit"
-            disabled={
-              !identifyingNum ||
-              !numValid ||
-              createMutation.isLoading
-            }
-            size="sm"
-            icon="RiSave2Fill"
-            className="max-w-fit"
-          >
+          <Button type="button" onClick={closePanel} size="sm" icon="HiArrowLeft" variant="white" className="max-w-fit">Annuler</Button>
+          <Button type="submit" disabled={!trimmed || !labelValid || createMutation.isLoading} size="sm" icon="RiSave2Fill" className="max-w-fit">
             {createMutation.isLoading ? "Ajout ..." : "Ajouter"}
           </Button>
         </div>

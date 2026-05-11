@@ -18,32 +18,32 @@ model Group {
 }
 
 model Tent {
-  id                String      @id @default(uuid())
-  identifyingNum    Int
-  identifyingString String?     @unique
-  size              Int
-  unit              Unit        @default(GROUPE)
-  state             State
-  complete          Boolean     @default(true)
-  integrated        Boolean     @default(false)
-  type              String      @default("Canadienne")
-  pegs              Int         @default(0)
-  comments          String?
-  createdAt         DateTime    @default(now())
-  updatedAt         DateTime    @updatedAt
-  groupId           String
-  group             Group       @relation(fields: [groupId], references: [id])
-  loans             TentLoan[]
+  id             String     @id @default(uuid())
+  // identifyingLabel can be a number string ("1", "42") or a name ("Bourgogne")
+  identifyingLabel String
+  size             Int
+  unit             Unit      @default(GROUPE)
+  state            State
+  complete         Boolean   @default(true)
+  integrated       Boolean   @default(false)
+  type             String    @default("Canadienne")
+  pegs             Int       @default(0)
+  comments         String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  groupId          String
+  group            Group     @relation(fields: [groupId], references: [id])
+  loans            TentLoan[]
 
-  @@unique([groupId, identifyingNum], name: "TentIdentifier")
+  @@unique([groupId, identifyingLabel], name: "TentIdentifier")
 }
 
 model TentLoan {
-  id         String   @id @default(uuid())
+  id         String    @id @default(uuid())
   tentId     String
-  tent       Tent     @relation(fields: [tentId], references: [id])
+  tent       Tent      @relation(fields: [tentId], references: [id])
   borrower   Unit
-  loanedAt   DateTime @default(now())
+  loanedAt   DateTime  @default(now())
   returnedAt DateTime?
   note       String?
 }

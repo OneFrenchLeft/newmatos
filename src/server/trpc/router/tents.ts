@@ -9,12 +9,9 @@ export const tentsRouter = t.router({
     const { session, prisma } = ctx
 
     const tents = await prisma.tent.findMany({
-      where: {
-        groupId: session.user.id,
-      },
-      orderBy: {
-        identifyingNum: "asc",
-      },
+      where: { groupId: session.user.id },
+      // DB-level ordering: numbers first numerically, then names alphabetically
+      // We sort in JS after fetch for the smart sort logic
       include: {
         loans: {
           orderBy: { loanedAt: "desc" },
@@ -25,82 +22,59 @@ export const tentsRouter = t.router({
 
     return tents
   }),
+
   getById: authedProcedure.input(z.string()).query(async ({ input, ctx }) => {
     const { prisma } = ctx
-
-    const tent = await prisma.tent.findUnique({
+    return prisma.tent.findUnique({
       where: { id: input },
       include: {
-        loans: {
-          orderBy: { loanedAt: "desc" },
-          take: 1,
-        },
+        loans: { orderBy: { loanedAt: "desc" }, take: 1 },
       },
     })
-
-    return tent
   }),
-  // Public getter for the public tent page (no auth)
+
   getPublic: t.procedure.input(z.string()).query(async ({ ctx, input }) => {
     const { prisma } = ctx
-    const tent = await prisma.tent.findUnique({
+    return prisma.tent.findUnique({
       where: { id: input },
       include: {
-        loans: {
-          orderBy: { loanedAt: "desc" },
-          take: 10,
-        },
+        loans: { orderBy: { loanedAt: "desc" }, take: 10 },
         group: { select: { name: true, movement: true } },
       },
     })
-    return tent
   }),
+
   create: authedProcedure
     .input(createTentSchema)
     .mutation(async ({ ctx, input }) => {
       const { prisma, session } = ctx
-
       try {
-        const createdTent = await prisma.tent.create({
-          data: {
-            ...input,
-            groupId: session.user.id,
-          },
+        return await prisma.tent.create({
+          data: { ...input, groupId: session.user.id },
         })
-
-        return createdTent
       } catch (error) {
         handleError(error)
       }
     }),
+
   update: authedProcedure
     .input(updateTentSchema)
     .mutation(async ({ ctx, input }) => {
       const { prisma, session } = ctx
-
       try {
-        const updatedTent = await prisma.tent.update({
+        return await prisma.tent.update({
           where: { id: input.id },
-          data: {
-            ...input.values,
-            groupId: session.user.id,
-          },
+          data: { ...input.values, groupId: session.user.id },
         })
-
-        return updatedTent
       } catch (error) {
         handleError(error)
       }
     }),
+
   delete: authedProcedure.input(z.string()).mutation(async ({ ctx, input }) => {
     const { prisma } = ctx
-
     try {
-      const deletedTent = await prisma.tent.delete({
-        where: { id: input },
-      })
-
-      return deletedTent
+      return await prisma.tent.delete({ where: { id: input } })
     } catch (error) {
       handleError(error)
     }
@@ -109,15 +83,9 @@ export const tentsRouter = t.router({
 
 const handleError = (error: unknown) => {
   if (error instanceof PrismaClientKnownRequestError) {
-    if (error.code === "P2002") {
-      throw new TRPCError({ message: error.code, code: "CONFLICT" })
-    }
-    if (error.code === "P2025") {
-      throw new TRPCError({ message: error.code, code: "PRECONDITION_FAILED" })
-    }
-    if (error.code === "P2003") {
-      throw new TRPCError({ message: error.code, code: "PRECONDITION_FAILED" })
-    }
+    if (error.code === "P2002") throw new TRPCError({ message: error.code, code: "CONFLICT" })
+    if (error.code === "P2025") throw new TRPCError({ message: error.code, code: "PRECONDITION_FAILED" })
+    if (error.code === "P2003") throw new TRPCError({ message: error.code, code: "PRECONDITION_FAILED" })
   }
   throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" })
 }

@@ -1,5 +1,6 @@
 import AppLayout from "@/components/app/Layout"
 import { trpc } from "@/utils/trpc"
+import { sortTentLabel } from "@/utils/tentSort"
 import Head from "next/head"
 import { ReactElement, useEffect, useState } from "react"
 import { NextPageWithLayout } from "./_app"
@@ -12,52 +13,36 @@ type MissingItems = {
 
 type MissingState = Record<string, MissingItems>
 
-const defaultItems = (): MissingItems => ({
-  zip: false,
-  faitiere: false,
-  doubleToit: false,
-})
-
+const defaultItems = (): MissingItems => ({ zip: false, faitiere: false, doubleToit: false })
 const STORAGE_KEY = "ce-qui-manque"
 
 const CeQuiManquePage: NextPageWithLayout = () => {
   const { data: tents, isLoading } = trpc.tents.getAll.useQuery()
   const [missing, setMissing] = useState<MissingState>({})
 
-  // Load saved state from sessionStorage on mount
   useEffect(() => {
     try {
       const saved = sessionStorage.getItem(STORAGE_KEY)
       if (saved) setMissing(JSON.parse(saved) as MissingState)
-    } catch {
-      // ignore
-    }
+    } catch { /* ignore */ }
   }, [])
 
-  // Persist state on change
   useEffect(() => {
-    try {
-      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(missing))
-    } catch {
-      // ignore
-    }
+    try { sessionStorage.setItem(STORAGE_KEY, JSON.stringify(missing)) }
+    catch { /* ignore */ }
   }, [missing])
 
   const toggle = (tentId: string, field: keyof MissingItems) => {
     setMissing((prev) => ({
       ...prev,
-      [tentId]: {
-        ...(prev[tentId] ?? defaultItems()),
-        [field]: !(prev[tentId]?.[field] ?? false),
-      },
+      [tentId]: { ...(prev[tentId] ?? defaultItems()), [field]: !(prev[tentId]?.[field] ?? false) },
     }))
   }
 
-  const getItems = (tentId: string): MissingItems =>
-    missing[tentId] ?? defaultItems()
+  const getItems = (tentId: string): MissingItems => missing[tentId] ?? defaultItems()
 
   const sortedTents = (tents ?? []).slice().sort((a, b) =>
-    a.identifyingNum - b.identifyingNum
+    sortTentLabel(a.identifyingLabel, b.identifyingLabel, "asc")
   )
 
   const missingCount = sortedTents.filter((tent) => {
@@ -67,15 +52,11 @@ const CeQuiManquePage: NextPageWithLayout = () => {
 
   return (
     <>
-      <Head>
-        <title>Ce qui manque | MonMatos</title>
-      </Head>
-
+      <Head><title>Ce qui manque | MonMatos</title></Head>
       <div className="space-y-6">
         <div className="flex items-center justify-between gap-4">
           <h1 className="whitespace-nowrap text-4xl font-bold lg:text-5xl">
-            <span>Ce qui </span>
-            <span className="text-emerald-600">manque</span>
+            <span>Ce qui </span><span className="text-emerald-600">manque</span>
           </h1>
           {missingCount > 0 && (
             <span className="rounded-full bg-red-100 px-3 py-1 text-sm font-semibold text-red-700">
@@ -83,35 +64,18 @@ const CeQuiManquePage: NextPageWithLayout = () => {
             </span>
           )}
         </div>
-
-        <p className="text-slate-500">
-          Cochez les éléments manquants pour chaque tente.
-        </p>
+        <p className="text-slate-500">Cochez les éléments manquants pour chaque tente.</p>
 
         {isLoading && (
           <div className="space-y-3">
             {Array.from({ length: 4 }).map((_, i) => (
-              <div
-                key={i}
-                className="h-20 animate-pulse rounded-xl bg-slate-200"
-              />
+              <div key={i} className="h-20 animate-pulse rounded-xl bg-slate-200" />
             ))}
           </div>
         )}
 
         {!isLoading && sortedTents.length === 0 && (
           <div className="flex flex-col items-center gap-3 py-16 text-slate-400">
-            <svg
-              width="48"
-              height="48"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-            >
-              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-              <polyline points="9 22 9 12 15 12 15 22" />
-            </svg>
             <p className="text-lg font-medium">Aucune tente enregistrée</p>
             <p className="text-sm">Ajoutez des tentes depuis la page "Mes Tentes".</p>
           </div>
@@ -133,64 +97,31 @@ const CeQuiManquePage: NextPageWithLayout = () => {
                   const items = getItems(tent.id)
                   const hasIssue = items.zip || items.faitiere || items.doubleToit
                   return (
-                    <tr
-                      key={tent.id}
-                      className={`transition-colors hover:bg-slate-50 ${
-                        hasIssue ? "bg-red-50/50" : ""
-                      }`}
-                    >
+                    <tr key={tent.id} className={`transition-colors hover:bg-slate-50 ${hasIssue ? "bg-red-50/50" : ""}`}>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
-                          <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full border-2 border-slate-700 text-sm font-bold">
-                            {tent.identifyingNum}
+                          <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full border-2 border-slate-700 text-xs font-bold">
+                            {tent.identifyingLabel.length > 3 ? tent.identifyingLabel.slice(0, 3) : tent.identifyingLabel}
                           </div>
                           <div>
-                            <p className="font-semibold text-slate-800">
-                              Tente {tent.identifyingNum}
-                            </p>
-                            <p className="text-xs text-slate-400">
-                              {tent.type} · {tent.size} place{tent.size > 1 ? "s" : ""}
-                            </p>
+                            <p className="font-semibold text-slate-800">Tente {tent.identifyingLabel}</p>
+                            <p className="text-xs text-slate-400">{tent.type} · {tent.size} place{tent.size > 1 ? "s" : ""}</p>
                           </div>
                         </div>
                       </td>
-
-                      {/* Zip */}
                       <td className="px-4 py-3 text-center">
                         <label className="inline-flex cursor-pointer items-center justify-center">
-                          <input
-                            type="checkbox"
-                            checked={items.zip}
-                            onChange={() => toggle(tent.id, "zip")}
-                            className="h-5 w-5 cursor-pointer accent-red-500"
-                            aria-label={`Zip manquant pour tente ${tent.identifyingNum}`}
-                          />
+                          <input type="checkbox" checked={items.zip} onChange={() => toggle(tent.id, "zip")} className="h-5 w-5 cursor-pointer accent-red-500" aria-label={`Zip manquant pour tente ${tent.identifyingLabel}`} />
                         </label>
                       </td>
-
-                      {/* Faitière */}
                       <td className="px-4 py-3 text-center">
                         <label className="inline-flex cursor-pointer items-center justify-center">
-                          <input
-                            type="checkbox"
-                            checked={items.faitiere}
-                            onChange={() => toggle(tent.id, "faitiere")}
-                            className="h-5 w-5 cursor-pointer accent-red-500"
-                            aria-label={`Faitière manquante pour tente ${tent.identifyingNum}`}
-                          />
+                          <input type="checkbox" checked={items.faitiere} onChange={() => toggle(tent.id, "faitiere")} className="h-5 w-5 cursor-pointer accent-red-500" aria-label={`Faitière manquante pour tente ${tent.identifyingLabel}`} />
                         </label>
                       </td>
-
-                      {/* Double toit */}
                       <td className="px-4 py-3 text-center">
                         <label className="inline-flex cursor-pointer items-center justify-center">
-                          <input
-                            type="checkbox"
-                            checked={items.doubleToit}
-                            onChange={() => toggle(tent.id, "doubleToit")}
-                            className="h-5 w-5 cursor-pointer accent-red-500"
-                            aria-label={`Double toit manquant pour tente ${tent.identifyingNum}`}
-                          />
+                          <input type="checkbox" checked={items.doubleToit} onChange={() => toggle(tent.id, "doubleToit")} className="h-5 w-5 cursor-pointer accent-red-500" aria-label={`Double toit manquant pour tente ${tent.identifyingLabel}`} />
                         </label>
                       </td>
                     </tr>

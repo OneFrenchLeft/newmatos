@@ -1,5 +1,4 @@
 import { stateColors } from "@/components/app/dashboard/StateChart"
-import { useGroup } from "@/components/hooks/useGroup"
 import { useModalContext } from "@/components/hooks/useModalContext"
 import Button from "@/components/ui/Button"
 import type { Tent } from "@/pages/tentes"
@@ -50,7 +49,7 @@ const TentViewPanel: FC<UIProps<{ tent: Tent }>> = ({ tent }) => {
 
   const {
     id,
-    identifyingNum,
+    identifyingLabel,
     size,
     state,
     type,
@@ -74,17 +73,17 @@ const TentViewPanel: FC<UIProps<{ tent: Tent }>> = ({ tent }) => {
   return (
     <>
       <Head>
-        <title>{`Tente ${identifyingNum} | MonMatos`}</title>
+        <title>{`Tente ${identifyingLabel} | MonMatos`}</title>
       </Head>
       <div className="mx-auto max-w-[450px] space-y-6 py-4">
         <div className="mx-auto flex h-28 w-28 items-center justify-center rounded-full border-4 border-slate-800">
-          <h2 className="text-3xl font-bold">{identifyingNum}</h2>
+          <h2 className="max-w-[100px] break-words text-center text-xl font-bold leading-tight">
+            {identifyingLabel}
+          </h2>
         </div>
 
         <div className="flex flex-wrap items-center justify-center gap-2 pt-4">
-          <Button type="button" onClick={goToUpdatePanel} size="sm" icon="HiPencil" className="max-w-fit">
-            Modifier
-          </Button>
+          <Button type="button" onClick={goToUpdatePanel} size="sm" icon="HiPencil" className="max-w-fit">Modifier</Button>
           <a
             href={publicUrl}
             target="_blank"
@@ -112,17 +111,14 @@ const TentViewPanel: FC<UIProps<{ tent: Tent }>> = ({ tent }) => {
           <TentCharacteristic label="Tapis de sol" value={integrated ? "INTÉGRÉ" : "NORMAL"} />
           <TentCharacteristic label="Piquets" value={`${pegs ?? 0} piquet${(pegs ?? 0) > 1 ? "s" : ""}`} />
           {activeLoan && (
-            <TentCharacteristic
-              label="Emprunté par"
-              value={unitLabels[activeLoan.borrower] ?? activeLoan.borrower}
-            />
+            <TentCharacteristic label="Emprunté par" value={unitLabels[activeLoan.borrower] ?? activeLoan.borrower} />
           )}
           <p className="py-2 italic">
             {comments ? `Commentaire: "${comments}"` : "Pas encore de commentaire ..."}
           </p>
         </div>
 
-        {/* Loan section */}
+        {/* Loan management */}
         <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
           <div className="flex items-center justify-between">
             <p className="font-semibold text-slate-700">Gestion des emprunts</p>
@@ -136,7 +132,6 @@ const TentViewPanel: FC<UIProps<{ tent: Tent }>> = ({ tent }) => {
               </button>
             )}
           </div>
-
           {!showLoanForm ? (
             <button
               onClick={() => setShowLoanForm(true)}
@@ -146,23 +141,13 @@ const TentViewPanel: FC<UIProps<{ tent: Tent }>> = ({ tent }) => {
             </button>
           ) : (
             <div className="space-y-3">
-              <select
-                value={selectedUnit}
-                onChange={(e) => setSelectedUnit(e.target.value)}
-                className="w-full rounded-lg border border-slate-200 p-2 text-sm outline-none"
-              >
+              <select value={selectedUnit} onChange={(e) => setSelectedUnit(e.target.value)} className="w-full rounded-lg border border-slate-200 p-2 text-sm outline-none">
                 <option value="">— Choisir une unité —</option>
-                {Object.entries(unitLabels).map(([key, label]) => (
-                  <option key={key} value={key}>{label}</option>
+                {Object.entries(unitLabels).map(([key, lbl]) => (
+                  <option key={key} value={key}>{lbl}</option>
                 ))}
               </select>
-              <input
-                type="text"
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                placeholder="Note (optionnel)"
-                className="w-full rounded-lg border border-slate-200 p-2 text-sm outline-none"
-              />
+              <input type="text" value={note} onChange={(e) => setNote(e.target.value)} placeholder="Note (optionnel)" className="w-full rounded-lg border border-slate-200 p-2 text-sm outline-none" />
               <div className="flex gap-2">
                 <button onClick={() => setShowLoanForm(false)} className="flex-1 rounded-lg border py-2 text-sm">Annuler</button>
                 <button
@@ -175,8 +160,6 @@ const TentViewPanel: FC<UIProps<{ tent: Tent }>> = ({ tent }) => {
               </div>
             </div>
           )}
-
-          {/* Loan history */}
           {loans && loans.length > 0 && (
             <div className="mt-2 space-y-2">
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Historique</p>
@@ -199,14 +182,7 @@ const TentViewPanel: FC<UIProps<{ tent: Tent }>> = ({ tent }) => {
           )}
         </div>
 
-        <Button
-          type="button"
-          onClick={goToDeletePanel}
-          size="sm"
-          variant="red"
-          icon="HiTrash"
-          className="ml-auto max-w-fit"
-        >
+        <Button type="button" onClick={goToDeletePanel} size="sm" variant="red" icon="HiTrash" className="ml-auto max-w-fit">
           Supprimer
         </Button>
       </div>

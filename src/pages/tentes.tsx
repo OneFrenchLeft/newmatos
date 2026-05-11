@@ -17,9 +17,7 @@ import { toast } from "react-hot-toast"
 import { NextPageWithLayout } from "./_app"
 
 export type Tents = inferProcedureOutput<AppRouter["tents"]["getAll"]>
-
 export type ArrayElement<A> = A extends readonly (infer T)[] ? T : never
-
 export type Tent = ArrayElement<Tents>
 
 export type Filters = {
@@ -38,11 +36,9 @@ const TentsPage: NextPageWithLayout = () => {
     state: null,
   })
   const [sorting, setSorting] = useState<"asc" | "desc">("asc")
+
   const openAddTentPanel = () =>
-    setModal({
-      component: <TentAddPanel tents={tents || []} />,
-      visible: true,
-    })
+    setModal({ component: <TentAddPanel tents={tents || []} />, visible: true })
 
   const openFilterModal = () =>
     setModal({
@@ -53,28 +49,17 @@ const TentsPage: NextPageWithLayout = () => {
   useEffect(() => {
     if (tents) {
       if (router.query.t === "add") {
-        setModal({
-          visible: true,
-          component: <TentAddPanel tents={tents} />,
-        })
+        setModal({ visible: true, component: <TentAddPanel tents={tents} /> })
         router.replace("/tentes", undefined, { shallow: true })
-
         return
       }
-
       if (router.query.i) {
-        const targetTent = tents.filter((tent) => tent.id === router.query.i)[0]
+        const targetTent = tents.find((tent) => tent.id === router.query.i)
         router.replace("/tentes", undefined, { shallow: true })
-
         if (targetTent) {
-          setModal({
-            visible: true,
-            component: <TentViewPanel tent={targetTent} />,
-          })
-
+          setModal({ visible: true, component: <TentViewPanel tent={targetTent} /> })
           return
         }
-
         toast.error("Cette tente n'existe pas")
       }
     }
@@ -102,7 +87,8 @@ const TentsPage: NextPageWithLayout = () => {
         <button
           type="button"
           onClick={openAddTentPanel}
-          className="flex h-7 w-7 items-center  justify-center rounded-full border bg-slate-900 text-white shadow-lg transition hover:scale-[0.98] hover:shadow-sm disabled:opacity-50 disabled:shadow-lg disabled:hover:scale-100 sm:hidden"
+          className="flex h-7 w-7 items-center justify-center rounded-full border bg-slate-900 text-white shadow-lg transition hover:scale-[0.98] hover:shadow-sm disabled:opacity-50 sm:hidden"
+          disabled={!tents}
         >
           <Icon name="BsPlusLg" className="text-sm" />
         </button>
@@ -111,9 +97,7 @@ const TentsPage: NextPageWithLayout = () => {
       <div className="flex flex-wrap items-center justify-end gap-3">
         <button
           type="button"
-          onClick={() =>
-            setSorting((prev) => (prev === "asc" ? "desc" : "asc"))
-          }
+          onClick={() => setSorting((prev) => (prev === "asc" ? "desc" : "asc"))}
           className="flex items-center space-x-1 text-slate-500 transition-colors hover:text-slate-900"
         >
           {sorting === "desc" ? (

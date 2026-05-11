@@ -1,11 +1,9 @@
 import { stateColors } from "@/components/app/dashboard/StateChart"
-import { useGroup } from "@/components/hooks/useGroup"
 import { useModalContext } from "@/components/hooks/useModalContext"
 import Card from "@/components/ui/Card"
 import Icon from "@/components/ui/Icon"
 import Tooltip from "@/components/ui/Tooltip"
 import type { Tent } from "@/pages/tentes"
-import { units } from "@/utils/records"
 import { UIProps } from "@/utils/typedProps"
 import { FC } from "react"
 import TentCharacteristic from "./TentCharacteristic"
@@ -14,85 +12,70 @@ import TentUpdatePanel from "./TentUpdatePanel"
 import TentViewPanel from "./TentViewPanel"
 
 const TentCard: FC<UIProps<{ tent: Tent }>> = ({ tent }) => {
-  const { movement } = useGroup()
-  const { identifyingNum, identifyingString, size, unit, state, type } = tent
+  const { identifyingLabel, size, state, type } = tent
   const { setModal } = useModalContext()
 
+  const isNumeric = /^\d+$/.test(identifyingLabel.trim())
+
   const openViewPanel = () =>
-    setModal({
-      component: <TentViewPanel tent={tent} />,
-      visible: true,
-    })
+    setModal({ component: <TentViewPanel tent={tent} />, visible: true })
 
   const openDeletePanel = (e: React.MouseEvent) => {
     e.stopPropagation()
-    setModal({
-      component: <TentDeletePanel tent={tent} />,
-      visible: true,
-    })
+    setModal({ component: <TentDeletePanel tent={tent} />, visible: true })
   }
 
   const openUpdatePanel = (e: React.MouseEvent) => {
     e.stopPropagation()
-    setModal({
-      component: <TentUpdatePanel tent={tent} />,
-      visible: true,
-    })
+    setModal({ component: <TentUpdatePanel tent={tent} />, visible: true })
   }
 
   return (
     <Card className="cursor-pointer" onClick={openViewPanel}>
       <div className="flex flex-col gap-4">
-        {identifyingString ? (
-          <div className="flex flex-col gap-2 pt-3 pb-2">
-            <h2 className="truncate text-2xl font-semibold">{identifyingString}</h2>
-            <h3 className="text-sm font-bold">
-                {units[movement][unit] || "GROUPE"} -{" "}
-                <span className="text-sm font-semibold">
-                {size === 0 ? "Structure" : `${size} places`}
-                </span>
-            </h3>
+        <div className="flex w-full items-center gap-4">
+          <div
+            className={`flex flex-shrink-0 items-center justify-center rounded-full border-4 border-slate-800 ${
+              isNumeric ? "h-20 w-20" : "h-14 w-14"
+            }`}
+          >
+            <h2
+              className={`font-bold ${
+                isNumeric
+                  ? "text-2xl"
+                  : identifyingLabel.length > 6
+                  ? "text-[10px]"
+                  : "text-sm"
+              }`}
+            >
+              {isNumeric ? identifyingLabel : identifyingLabel.slice(0, 8)}
+            </h2>
           </div>
-        ) : (
-          <div className="flex w-full items-center gap-4">
-            <div className="flex h-20 w-20 items-center justify-center rounded-full border-4 border-slate-800">
-              <h2 className="text-2xl font-bold">{identifyingNum}</h2>
-            </div>
-            <div className="text-left">
-              <h3 className="text-sm font-bold leading-tight">{units[movement][unit] || "GROUPE"}</h3>
-              <p className="text-sm font-semibold">{size} places</p>
-            </div>
+          <div className="text-left">
+            {!isNumeric && (
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Tente
+              </p>
+            )}
+            <p className="text-sm font-semibold">{size} place{size > 1 ? "s" : ""}</p>
           </div>
-        )}
+        </div>
 
         <div className="space-y-2">
-          <TentCharacteristic
-            type="state"
-            label="ÉTAT"
-            value={state}
-            variants={stateColors}
-          />
+          <TentCharacteristic type="state" label="ÉTAT" value={state} variants={stateColors} />
           <TentCharacteristic type="type" label="TYPE" value={type.toUpperCase()} />
         </div>
 
         <div className="flex items-center justify-between">
-          <div className="text-xs underline cursor-pointer" onClick={openViewPanel}>
+          <div className="cursor-pointer text-xs underline" onClick={openViewPanel}>
             Voir plus d'infos
           </div>
           <div className="flex items-center">
-            <button
-              type="button"
-              onClick={openUpdatePanel}
-              className="group relative hover:text-blue-500"
-            >
+            <button type="button" onClick={openUpdatePanel} className="group relative hover:text-blue-500">
               <Icon name="HiPencil" />
               <Tooltip className="-left-8">Modifier</Tooltip>
             </button>
-            <button
-              type="button"
-              onClick={openDeletePanel}
-              className="group relative hover:text-red-500"
-            >
+            <button type="button" onClick={openDeletePanel} className="group relative hover:text-red-500">
               <Icon name="HiTrash" />
               <Tooltip className="-left-8">Supprimer</Tooltip>
             </button>

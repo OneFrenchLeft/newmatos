@@ -1,6 +1,7 @@
 import { useModalContext } from "@/components/hooks/useModalContext"
 import Button from "@/components/ui/Button"
 import Panel from "@/components/ui/Panel"
+import { sortTentLabel } from "@/utils/tentSort"
 import { Filters, Tents } from "@/pages/tentes"
 import { UIProps } from "@/utils/typedProps"
 import { Tent } from "@prisma/client"
@@ -18,20 +19,18 @@ const TentsContainer: FC<
   }>
 > = ({ tents, filters, loading, sorting = "asc" }) => {
   const { setModal } = useModalContext()
-  const getTentToBeDisplayed = (tents: Tent[]) =>
+
+  const getTentsToDisplay = (tents: Tent[]) =>
     tents.filter((tent) => {
       let wanted = true
       Object.entries(filters).forEach(([key, value]) => {
         wanted = (value ? tent[key as keyof Tent] === value : true) && wanted
       })
-
       return wanted
     })
+
   const openAddTentPanel = () =>
-    setModal({
-      component: <TentAddPanel tents={tents || []} />,
-      visible: true,
-    })
+    setModal({ component: <TentAddPanel tents={tents || []} />, visible: true })
 
   if (loading) {
     return (
@@ -65,22 +64,19 @@ const TentsContainer: FC<
     )
   }
 
+  const displayed = getTentsToDisplay(tents).sort((a, b) =>
+    sortTentLabel(a.identifyingLabel, b.identifyingLabel, sorting),
+  )
+
   return (
     <Panel className="text-center">
-      {getTentToBeDisplayed(tents).length > 0 && (
+      {displayed.length > 0 ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {getTentToBeDisplayed(tents)
-            .sort((a, b) =>
-              sorting === "asc"
-                ? a.identifyingNum - b.identifyingNum
-                : b.identifyingNum - a.identifyingNum,
-            )
-            .map((tent) => (
-              <TentCard tent={tent} key={tent.id} />
-            ))}
+          {displayed.map((tent) => (
+            <TentCard tent={tent} key={tent.id} />
+          ))}
         </div>
-      )}
-      {getTentToBeDisplayed(tents).length === 0 && (
+      ) : (
         <div className="flex w-full flex-col items-center justify-center gap-4 py-24">
           <div className="font-medium text-slate-400 sm:text-lg">
             Aucune tente ne correspond à vos critères de recherche ...
