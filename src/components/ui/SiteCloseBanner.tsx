@@ -35,13 +35,13 @@ const SiteCloseBanner = () => {
           >
             J'ai compris
           </button>
-          <Link href="https://www.youtube.com/watch?v=E4WlUXrJgy4" target="_blank">
-            <a
-              target="_blank"
-              className="animate-[pulse_1500ms_infinite] underline underline-offset-1"
-            >
-              En savoir plus
-            </a>
+          <Link
+            href="https://www.youtube.com/watch?v=E4WlUXrJgy4"
+            target="_blank"
+            rel="noreferrer"
+            className="animate-[pulse_1500ms_infinite] underline underline-offset-1"
+          >
+            En savoir plus
           </Link>
         </div>
       </div>
